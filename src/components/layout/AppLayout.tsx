@@ -5,7 +5,7 @@ import { navItemsForRole, bottomNavItemsForRole } from './nav';
 import { Icon } from '../ui/Icon';
 import { ROLE_LABEL } from '../../utils/rbac';
 
-const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined)?.slice(0, 7) || 'dev';
+const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) || 'dev';
 
 function formatBuildDate(iso: string) {
   const d = new Date(iso);
