@@ -28,7 +28,7 @@ const MANAGE_ROLES = ['admin', 'advisor_staff'] as const;
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/rytc-care-plus">
       <AuthProvider>
         <ToastProvider>
           <ConfirmProvider>
