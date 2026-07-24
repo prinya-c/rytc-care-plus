@@ -16,6 +16,9 @@ const BulkScreeningPage = lazy(() => import('./features/screenings/BulkScreening
 const ScreeningSummaryPage = lazy(() => import('./features/screenings/ScreeningSummaryPage'));
 const HomeVisitFormPage = lazy(() => import('./features/homeVisits/HomeVisitFormPage'));
 const HomeVisitSummaryPage = lazy(() => import('./features/homeVisits/HomeVisitSummaryPage'));
+const HomeroomLogListPage = lazy(() => import('./features/homeroom/HomeroomLogListPage'));
+const HomeroomLogFormPage = lazy(() => import('./features/homeroom/HomeroomLogFormPage'));
+const HomeroomLogDetailPage = lazy(() => import('./features/homeroom/HomeroomLogDetailPage'));
 const ReferralFormPage = lazy(() => import('./features/referrals/ReferralFormPage'));
 const ReferralInboxPage = lazy(() => import('./features/referrals/ReferralInboxPage'));
 const ReferralDetailPage = lazy(() => import('./features/referrals/ReferralDetailPage'));
@@ -52,6 +55,10 @@ export default function App() {
                     <Route path="/home-visits/new/:studentId" element={<HomeVisitFormPage />} />
                     <Route path="/home-visits/:visitId/edit" element={<HomeVisitFormPage />} />
                     <Route path="/home-visits/summary" element={<HomeVisitSummaryPage />} />
+                    <Route path="/homeroom" element={<HomeroomLogListPage />} />
+                    <Route path="/homeroom/new" element={<HomeroomLogFormPage />} />
+                    <Route path="/homeroom/:logId" element={<HomeroomLogDetailPage />} />
+                    <Route path="/homeroom/:logId/edit" element={<HomeroomLogFormPage />} />
                     <Route path="/referrals/new/:studentId" element={<ReferralFormPage />} />
                   </Route>
 
