@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchHomeroomLogsByTeacher, fetchAllHomeroomLogs, deleteHomeroomLog } from './api';
+import { deleteImageByUrl } from '../../lib/storage';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
 import { Button } from '../../components/ui/Form';
 import { Badge } from '../../components/ui/Badge';
@@ -10,6 +11,7 @@ import { Icon } from '../../components/ui/Icon';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
 import { canViewCollegeOverview } from '../../utils/rbac';
+import type { HomeroomLog } from '../../types';
 
 export default function HomeroomLogListPage() {
   const { profile } = useAuth();
@@ -23,17 +25,18 @@ export default function HomeroomLogListPage() {
     [overview, profile?.uid],
   );
 
-  async function handleDelete(id: string, label: string) {
+  async function handleDelete(log: HomeroomLog) {
     const ok = await confirm({
       title: 'ลบบันทึกกิจกรรมโฮมรูมนี้?',
-      description: `${label} — ลบแล้วไม่สามารถกู้คืนได้`,
+      description: `ครั้งที่ ${log.sessionNumber} — ${log.className} — ลบแล้วไม่สามารถกู้คืนได้`,
       confirmText: 'ลบ',
       tone: 'danger',
     });
     if (!ok) return;
-    setDeletingId(id);
+    setDeletingId(log.id);
     try {
-      await deleteHomeroomLog(id);
+      await deleteHomeroomLog(log.id);
+      await Promise.all(log.images.map((url) => deleteImageByUrl(url)));
       showToast('ลบบันทึกเรียบร้อยแล้ว');
       refetch();
     } catch {
@@ -92,7 +95,7 @@ export default function HomeroomLogListPage() {
                       type="button"
                       title="ลบ"
                       disabled={deletingId === log.id}
-                      onClick={() => handleDelete(log.id, `ครั้งที่ ${log.sessionNumber} — ${log.className}`)}
+                      onClick={() => handleDelete(log)}
                       className="flex h-7 w-7 items-center justify-center rounded-full bg-close-100 text-close-700 hover:bg-close-200 disabled:opacity-50"
                     >
                       <Icon name="trash" className="h-4 w-4" />
