@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// TEMPORARY — see firestore.care-plus.rules for the full explanation.
+// Firebase Authentication is currently disabled, so `request.auth` is
+// always null here too. This rule intentionally does not check it (an
+// auth check here would make every upload fail with permission-denied).
+// Restore the `request.auth != null` condition once Firebase
+// Authentication is re-enabled.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Home visit photos and map images.
+    match /home-visits/{studentId}/{fileName} {
+      allow read: if true;
+      allow write: if request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,153 @@
+rules_version = '2';
+
+// NOT CURRENTLY DEPLOYED. This is the intended role-based ruleset for the
+// "care-plus" database, preserved here for when Firebase Authentication is
+// re-enabled (it depends on request.auth, which is only ever populated by
+// real Firebase Auth — the temporary citizenId+password custom auth in
+// src/lib/customAuth.ts does not produce one). Until then, the deployed
+// file is firestore.care-plus.rules (wide open). See README "Temporary
+// custom auth" section. To restore: copy this file's contents over
+// firestore.care-plus.rules and redeploy.
+
+// Rules for the "care-plus" Firestore database (a separate named database
+// from the college's existing "out-of" database — see README.md for the
+// two-database setup, and note that out-of's rules are owned/managed by a
+// different application; this project never touches them). All collections
+// here are
+// plain top-level collections: users, screenings, home-visits, referrals,
+// interventions, follow-up-results.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Helpers -------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function profileRef() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasProfile() {
+      return isSignedIn() && exists(profileRef());
+    }
+
+    function profile() {
+      return get(profileRef()).data;
+    }
+
+    // Signed in, has a profile doc, and that profile is not suspended.
+    function isActiveUser() {
+      return hasProfile() && profile().isActive == true;
+    }
+
+    function hasRole(roles) {
+      return isActiveUser() && profile().role in roles;
+    }
+
+    function isAdmin() {
+      return hasRole(['admin']);
+    }
+
+    function isOverviewRole() {
+      return hasRole(['admin', 'advisor_staff']);
+    }
+
+    function isAdvisorTeacher() {
+      return hasRole(['advisor_teacher']);
+    }
+
+    function myTeacherId() {
+      return profile().teacherId;
+    }
+
+    function isOfficerFor(targetWork) {
+      return (targetWork == 'guidance' && hasRole(['guidance_staff']))
+        || (targetWork == 'scholarship' && hasRole(['scholarship_staff']))
+        || (targetWork == 'rehabilitation' && hasRole(['rehabilitation_staff']));
+    }
+
+    // ---- users -----------------------------------------------------------
+    // Every signed-in user may read their own profile (needed to resolve
+    // role/isActive on login, including when the account is suspended).
+    // Only admin / advisor_staff may manage accounts.
+
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isOverviewRole());
+      allow create, update: if isOverviewRole();
+      allow delete: if isAdmin();
+    }
+
+    // ---- screenings --------------------------------------------------------
+
+    match /screenings/{screeningId} {
+      allow read: if isOverviewRole()
+        || (isAdvisorTeacher() && resource.data.advisorTeacherId == myTeacherId());
+      allow create: if isAdvisorTeacher()
+        && request.resource.data.advisorTeacherId == myTeacherId()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isOverviewRole()
+        || (isAdvisorTeacher() && resource.data.advisorTeacherId == myTeacherId());
+      allow delete: if isAdmin();
+    }
+
+    // ---- home-visits --------------------------------------------------------
+
+    match /home-visits/{visitId} {
+      allow read: if isOverviewRole()
+        || (isAdvisorTeacher() && resource.data.advisorTeacherId == myTeacherId());
+      allow create: if isAdvisorTeacher()
+        && request.resource.data.advisorTeacherId == myTeacherId()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isOverviewRole()
+        || (isAdvisorTeacher() && resource.data.advisorTeacherId == myTeacherId());
+      allow delete: if isAdmin();
+    }
+
+    // ---- referrals ------------------------------------------------------------
+
+    match /referrals/{referralId} {
+      allow read: if isOverviewRole()
+        || (isAdvisorTeacher() && resource.data.referredBy == myTeacherId())
+        || isOfficerFor(resource.data.targetWork);
+      allow create: if isAdvisorTeacher()
+        && request.resource.data.referredBy == myTeacherId()
+        && request.resource.data.status == 'sent';
+      allow update: if isOverviewRole()
+        || (isAdvisorTeacher() && resource.data.referredBy == myTeacherId())
+        || isOfficerFor(resource.data.targetWork);
+      allow delete: if isAdmin();
+    }
+
+    // ---- interventions ------------------------------------------------------
+
+    match /interventions/{interventionId} {
+      allow read: if isOverviewRole()
+        || isOfficerFor(resource.data.targetWork)
+        || isAdvisorTeacher();
+      allow create: if isOfficerFor(request.resource.data.targetWork)
+        && request.resource.data.officerId == request.auth.uid;
+      allow update: if isOverviewRole() || isOfficerFor(resource.data.targetWork);
+      allow delete: if isAdmin();
+    }
+
+    // ---- follow-up-results -------------------------------------------------
+
+    match /follow-up-results/{resultId} {
+      allow read: if isOverviewRole()
+        || isOfficerFor(resource.data.targetWork)
+        || isAdvisorTeacher();
+      allow create: if isOfficerFor(request.resource.data.targetWork)
+        && request.resource.data.closedBy == request.auth.uid;
+      allow update: if isOverviewRole() || isOfficerFor(resource.data.targetWork);
+      allow delete: if isAdmin();
+    }
+
+    // Deny everything else by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

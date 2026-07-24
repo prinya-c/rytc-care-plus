@@ -1,0 +1,49 @@
+rules_version = '2';
+
+// ============================================================================
+// TEMPORARY — WIDE OPEN. Firebase Authentication is currently disabled in
+// this app (see README "Temporary custom auth" section and
+// src/lib/customAuth.ts). Without it, `request.auth` is always null, so
+// these rules CANNOT verify who is making a request — there is no
+// server-side identity to check role/isActive/ownership against.
+//
+// Practical consequence: anyone who has this app's public Firebase config
+// (already embedded in the deployed JS bundle — not a secret) can read or
+// write ANY document in this database directly via the Firestore SDK,
+// bypassing the app's login screen entirely. The only protection right now
+// is the app's own UI/session logic, which offers no real security
+// guarantee at the database level.
+//
+// This is a deliberate, accepted trade-off for now (confirmed with the
+// project owner) — to be reverted once Firebase Authentication is
+// re-enabled. The full role-based ruleset is preserved in
+// firestore.care-plus.rules.future — copy it back over this file and
+// redeploy when that happens.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if true;
+    }
+    match /screenings/{screeningId} {
+      allow read, write: if true;
+    }
+    match /home-visits/{visitId} {
+      allow read, write: if true;
+    }
+    match /referrals/{referralId} {
+      allow read, write: if true;
+    }
+    match /interventions/{interventionId} {
+      allow read, write: if true;
+    }
+    match /follow-up-results/{resultId} {
+      allow read, write: if true;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

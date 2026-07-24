@@ -1,0 +1,9 @@
+{
+  "firestore": {
+    "database": "care-plus",
+    "rules": "firestore.care-plus.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}
