@@ -1,16 +1,29 @@
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { getDownloadURL, ref, uploadBytes, deleteObject } from 'firebase/storage';
 import { storage } from './firebase';
+import { toWebp } from './imageCompress';
 
-export async function uploadHomeVisitImage(file: File, studentId: string) {
-  const path = `home-visits/${studentId}/${Date.now()}-${file.name}`;
+async function uploadCompressedImage(file: File, folderPath: string) {
+  const { blob, extension } = await toWebp(file);
+  const baseName = file.name.replace(/\.[^./]+$/, '') || 'photo';
+  const path = `${folderPath}/${Date.now()}-${baseName}.${extension}`;
   const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
+  await uploadBytes(storageRef, blob, { contentType: blob.type || file.type });
   return getDownloadURL(storageRef);
 }
 
+export async function uploadHomeVisitImage(file: File, studentId: string) {
+  return uploadCompressedImage(file, `home-visits/${studentId}`);
+}
+
 export async function uploadHomeroomLogImage(file: File, classId: string) {
-  const path = `homeroom-logs/${classId}/${Date.now()}-${file.name}`;
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
+  return uploadCompressedImage(file, `homeroom-logs/${classId}`);
+}
+
+/** Deletes an uploaded image given its Storage download URL. Safe to call on an already-deleted file. */
+export async function deleteImageByUrl(url: string) {
+  try {
+    await deleteObject(ref(storage, url));
+  } catch {
+    // Already deleted, or the URL wasn't a Storage ref — nothing more we can do.
+  }
 }
