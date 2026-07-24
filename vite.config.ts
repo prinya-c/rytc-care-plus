@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/rytc-care-plus/',
   plugins: [
     react(),
     tailwindcss(),
@@ -12,7 +13,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        id: '/',
+        id: '/rytc-care-plus/',
         name: 'RYC Care+',
         short_name: 'Care+',
         description: 'ระบบดูแลช่วยเหลือและติดตามนักเรียน นักศึกษา วิทยาลัยเทคนิคระยอง',
@@ -20,8 +21,8 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait-primary',
-        start_url: '/',
-        scope: '/',
+        start_url: '/rytc-care-plus/',
+        scope: '/rytc-care-plus/',
         lang: 'th',
         icons: [
           {
