@@ -57,9 +57,25 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        // index.html is deliberately NOT precached here (no 'html' glob) —
+        // hashed JS/CSS/icon filenames make CacheFirst precaching safe for
+        // them (new content always gets a new filename), but the one
+        // unhashed, always-same-URL document (index.html, which is what a
+        // plain page refresh loads) must never be served stale from cache.
+        // The navigate runtimeCaching rule below handles it instead:
+        // network-first, cache only as an offline fallback.
+        globPatterns: ['**/*.{js,css,ico,png,svg,webmanifest}'],
         navigateFallbackDenylist: [/^\/__/],
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'app-shell',
+              networkTimeoutSeconds: 5,
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             urlPattern: ({ url }) => url.origin === 'https://firestore.googleapis.com',
             handler: 'NetworkFirst',
