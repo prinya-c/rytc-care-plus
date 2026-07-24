@@ -5,6 +5,17 @@ import { navItemsForRole, bottomNavItemsForRole } from './nav';
 import { Icon } from '../ui/Icon';
 import { ROLE_LABEL } from '../../utils/rbac';
 
+const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined)?.slice(0, 7) || 'dev';
+
+function formatBuildDate(iso: string) {
+  const d = new Date(iso);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}/${d.getFullYear() + 543}`;
+}
+
+const BUILD_DATE_LABEL = formatBuildDate(__BUILD_DATE__);
+
 export default function AppLayout() {
   const { profile, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -53,6 +64,9 @@ export default function AppLayout() {
               <Icon name="logout" className="h-5 w-5" />
             </button>
           </div>
+          <p className="mt-1 text-center text-[10px] text-gray-300">
+            v.{APP_VERSION} · {BUILD_DATE_LABEL}
+          </p>
         </div>
       </aside>
 
@@ -107,6 +121,9 @@ export default function AppLayout() {
                   <Icon name="logout" className="h-5 w-5" />
                   ออกจากระบบ
                 </button>
+                <p className="mt-1 text-center text-[10px] text-gray-300">
+                  v.{APP_VERSION} · {BUILD_DATE_LABEL}
+                </p>
               </nav>
             </div>
           </div>
