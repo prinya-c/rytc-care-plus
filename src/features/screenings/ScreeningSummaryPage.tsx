@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useAsync } from '../../hooks/useAsync';
 import { useAuth } from '../auth/AuthContext';
-import { fetchAllScreenings } from './api';
+import { fetchAllScreenings, fetchScreeningsByTeacher } from './api';
 import { fetchAllTeachers } from '../students/api';
 import { SCREENING_CATEGORY_ORDER } from './checklist';
 import { Card, CardHeader, CardBody, StatCard } from '../../components/ui/Card';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
 import { Select, Button, Field, Input } from '../../components/ui/Form';
 import { Badge } from '../../components/ui/Badge';
+import { canViewCollegeOverview } from '../../utils/rbac';
 import { SCREENING_CATEGORY_LABEL, type ResultGroup, type Teacher } from '../../types';
 
 const GROUP_COLORS = { trust: '#16a34a', concern: '#ca8a04', close: '#dc2626' };
@@ -103,11 +104,16 @@ export default function ScreeningSummaryPage() {
   const [reportDeptHeadName, setReportDeptHeadName] = useState('');
 
   const { profile } = useAuth();
+  const overview = canViewCollegeOverview(profile?.role);
   const { data: teachers } = useAsync(fetchAllTeachers, []);
-  // Unfiltered, independent of the period/class/department filters below —
-  // powers the "รอบคัดกรอง" cards so every round a teacher has ever run
-  // stays visible and clickable regardless of the current filter selection.
-  const { data: allScreenings } = useAsync(() => fetchAllScreenings(), []);
+  // Independent of the period/class/department filters below — powers the
+  // "รอบคัดกรอง" cards so every round stays visible and clickable regardless
+  // of the current filter selection. Scoped to the logged-in teacher's own
+  // screenings unless their role can see the whole college.
+  const { data: allScreenings } = useAsync(
+    () => (overview ? fetchAllScreenings() : fetchScreeningsByTeacher(profile?.teacherId ?? profile?.uid ?? '')),
+    [overview, profile?.uid],
+  );
 
   useEffect(() => {
     if (!printMode) return;
