@@ -16,6 +16,13 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*');
     }
 
+    // Homeroom activity log photos.
+    match /homeroom-logs/{classId}/{fileName} {
+      allow read: if true;
+      allow write: if request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

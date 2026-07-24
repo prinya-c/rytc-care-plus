@@ -40,6 +40,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'advisor_teacher', 'advisor_staff'],
   },
   {
+    to: '/homeroom',
+    label: 'กิจกรรมโฮมรูม',
+    icon: 'document',
+    roles: ['admin', 'advisor_teacher', 'advisor_staff'],
+  },
+  {
     to: '/referrals',
     label: 'ส่งต่อผู้เรียน',
     icon: 'send',

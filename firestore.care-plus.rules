@@ -32,6 +32,9 @@ service cloud.firestore {
     match /home-visits/{visitId} {
       allow read, write: if true;
     }
+    match /homeroom-logs/{logId} {
+      allow read, write: if true;
+    }
     match /referrals/{referralId} {
       allow read, write: if true;
     }

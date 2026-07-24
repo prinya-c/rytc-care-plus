@@ -198,6 +198,39 @@ export interface HomeVisit {
   updatedAt: unknown;
 }
 
+export interface AbsentStudentEntry {
+  studentId: string;
+  studentName: string;
+}
+
+export interface HomeroomLog {
+  id: string;
+  classId: string;
+  className: string;
+  departmentId: string;
+  departmentName: string;
+  advisorTeacherId: string;
+  advisorTeacherName: string;
+  academicYear: string;
+  semester: string;
+  sessionNumber: string;
+  sessionDate: string;
+  /** เลขที่หนังสือ — often left blank until the registrar assigns one. */
+  docNumber: string;
+  totalStudents: number;
+  absentStudents: AbsentStudentEntry[];
+  /** เรื่องที่ปรึกษา / คำแนะนำ / ปัญหาที่พบและการแก้ไข การแต่งกาย การมาเรียน */
+  detail: string;
+  images: string[];
+  deptHeadName: string;
+  advisorHeadName: string;
+  deputyDirectorName: string;
+  status: DocStatus;
+  createdBy: string;
+  createdAt: unknown;
+  updatedAt: unknown;
+}
+
 export type TargetWork = 'guidance' | 'scholarship' | 'rehabilitation';
 
 export const TARGET_WORK_LABEL: Record<TargetWork, string> = {
