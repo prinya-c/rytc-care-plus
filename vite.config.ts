@@ -14,6 +14,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Registered manually in main.tsx via `virtual:pwa-register` instead of
+      // the auto-injected script, since only the manual registration wires up
+      // the reload-on-update behaviour that registerType 'autoUpdate' implies.
+      injectRegister: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         id: '/rytc-care-plus/',
