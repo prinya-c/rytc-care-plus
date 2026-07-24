@@ -6,6 +6,7 @@ import {
   addDoc,
   updateDoc,
   setDoc,
+  deleteDoc,
   query,
   type QueryConstraint,
   type DocumentData,
@@ -61,6 +62,10 @@ export async function patchDoc<T extends object>(name: CarePlusCollectionName, i
     ...data,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function removeDoc(name: CarePlusCollectionName, id: string) {
+  await deleteDoc(cpDoc(name, id));
 }
 
 /**
