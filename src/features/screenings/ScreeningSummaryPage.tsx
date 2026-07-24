@@ -8,6 +8,7 @@ import { SCREENING_CATEGORY_ORDER } from './checklist';
 import { Card, CardHeader, CardBody, StatCard } from '../../components/ui/Card';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
 import { Select, Button, Field, Input } from '../../components/ui/Form';
+import { Badge } from '../../components/ui/Badge';
 import { SCREENING_CATEGORY_LABEL, type ResultGroup, type Teacher } from '../../types';
 
 const GROUP_COLORS = { trust: '#16a34a', concern: '#ca8a04', close: '#dc2626' };
@@ -103,6 +104,10 @@ export default function ScreeningSummaryPage() {
 
   const { profile } = useAuth();
   const { data: teachers } = useAsync(fetchAllTeachers, []);
+  // Unfiltered, independent of the period/class/department filters below —
+  // powers the "รอบคัดกรอง" cards so every round a teacher has ever run
+  // stays visible and clickable regardless of the current filter selection.
+  const { data: allScreenings } = useAsync(() => fetchAllScreenings(), []);
 
   useEffect(() => {
     if (!printMode) return;
@@ -138,6 +143,21 @@ export default function ScreeningSummaryPage() {
       ),
     };
   }, [data]);
+
+  /** One card per (ปีการศึกษา, ภาคเรียน) a teacher has ever screened — a "รอบคัดกรอง". */
+  const rounds = useMemo(() => {
+    if (!allScreenings) return [];
+    const map = new Map<string, { academicYear: string; semester: string; trust: number; concern: number; close: number }>();
+    for (const s of allScreenings) {
+      const key = `${s.academicYear}|${s.semester}`;
+      const entry = map.get(key) ?? { academicYear: s.academicYear, semester: s.semester, trust: 0, concern: 0, close: 0 };
+      entry[s.resultGroup]++;
+      map.set(key, entry);
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => b.academicYear.localeCompare(a.academicYear) || b.semester.localeCompare(a.semester),
+    );
+  }, [allScreenings]);
 
   if (loading) return <LoadingState />;
   if (error || !data) return <ErrorState onRetry={refetch} />;
@@ -192,6 +212,43 @@ export default function ScreeningSummaryPage() {
           </Button>
         </div>
       </div>
+
+      {rounds.length > 0 && (
+        <div className="print:hidden">
+          <p className="mb-2 text-sm font-semibold text-gray-700">รอบคัดกรอง — แตะเพื่อกรองตามรอบ</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {rounds.map((r) => {
+              const total = r.trust + r.concern + r.close;
+              const active = academicYear === r.academicYear && semester === r.semester;
+              return (
+                <button
+                  key={`${r.academicYear}|${r.semester}`}
+                  type="button"
+                  onClick={() => {
+                    setAcademicYear(r.academicYear);
+                    setSemester(r.semester);
+                  }}
+                  className={`rounded-2xl border bg-white p-4 text-left shadow-sm transition-colors ${
+                    active ? 'border-brand-500 ring-2 ring-brand-500/20' : 'border-gray-200 hover:border-brand-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold text-gray-900">
+                      ภาคเรียนที่ {r.semester} ปีการศึกษา {r.academicYear}
+                    </p>
+                    <span className="text-xs text-gray-400">{total} คน</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <Badge tone="green">ไว้ใจ {r.trust}</Badge>
+                    <Badge tone="yellow">ห่วงใย {r.concern}</Badge>
+                    <Badge tone="red">ใกล้ชิด {r.close}</Badge>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 print:hidden">
         <Select value={academicYear} onChange={(e) => setAcademicYear(e.target.value)}>
