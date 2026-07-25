@@ -20,6 +20,11 @@ function selfReportUrl(visitId: string, token: string) {
   return `${window.location.origin}${import.meta.env.BASE_URL}home-visits/self-report/${visitId}/${token}`;
 }
 
+async function copyQrImage(dataUrl: string) {
+  const blob = await (await fetch(dataUrl)).blob();
+  await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+}
+
 /**
  * Guarantees the student has a HomeVisit doc carrying a shareToken, creating
  * a draft (or back-filling a missing token) if needed, so the card can show
@@ -188,17 +193,33 @@ export default function HomeVisitListPage() {
                     <img src={qr} alt="QR ให้นักเรียนกรอกข้อมูล" className="h-24 w-24 shrink-0" />
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-gray-700">ให้นักเรียนสแกนเพื่อกรอกข้อมูลส่วนตัว</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const v = data.visitByStudent.get(s.sid)!;
-                          navigator.clipboard.writeText(selfReportUrl(v.id, v.shareToken!));
-                          showToast('คัดลอกลิงก์แล้ว');
-                        }}
-                        className="mt-1.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-brand-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                      >
-                        คัดลอกลิงก์
-                      </button>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const v = data.visitByStudent.get(s.sid)!;
+                            navigator.clipboard.writeText(selfReportUrl(v.id, v.shareToken!));
+                            showToast('คัดลอกลิงก์แล้ว');
+                          }}
+                          className="rounded-md bg-white px-2 py-1 text-xs font-medium text-brand-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                        >
+                          คัดลอกลิงก์
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await copyQrImage(qr);
+                              showToast('คัดลอก QR Code แล้ว');
+                            } catch {
+                              showToast('เบราว์เซอร์นี้ไม่รองรับการคัดลอกรูปภาพ', 'error');
+                            }
+                          }}
+                          className="rounded-md bg-white px-2 py-1 text-xs font-medium text-brand-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                        >
+                          คัดลอก QR Code
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
