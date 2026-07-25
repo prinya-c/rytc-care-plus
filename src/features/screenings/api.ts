@@ -1,5 +1,5 @@
 import { where, orderBy } from 'firebase/firestore';
-import { cpCollection, createDoc, getById, listAll, patchDoc, upsertDocWithId } from '../../lib/firestore';
+import { cpCollection, createDoc, getById, listAll, patchDoc, removeDoc, upsertDocWithId } from '../../lib/firestore';
 import { getDocs, query } from 'firebase/firestore';
 import type { Screening } from '../../types';
 
@@ -69,6 +69,10 @@ export async function upsertScreening(
 export async function fetchLatestScreeningForStudent(studentId: string) {
   const results = await fetchScreeningsByStudent(studentId);
   return results[0] ?? null;
+}
+
+export async function deleteScreening(id: string) {
+  return removeDoc('screenings', id);
 }
 
 export interface ScreeningRound {
