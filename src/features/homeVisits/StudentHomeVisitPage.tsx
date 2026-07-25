@@ -1,16 +1,52 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useStudentAuth } from '../studentAuth/StudentAuthContext';
 import { useAsync } from '../../hooks/useAsync';
-import { fetchHomeVisitById, updateHomeVisit } from './api';
+import { fetchHomeVisitsByStudent, createHomeVisit, updateHomeVisit } from './api';
+import { fetchAdvisorTeacherForClass } from '../users/api';
 import { uploadHomeVisitImage } from '../../lib/storage';
-import { emptyStudentInfo, emptyFamilyInfo } from './HomeVisitFormPage';
-import type { FamilyInfo, StudentInfo } from '../../types';
+import { emptyStudentInfo, emptyFamilyInfo, emptyBehaviorInfo } from './HomeVisitFormPage';
+import { studentDisplayName } from '../students/api';
+import type { FamilyInfo, HomeVisit, Student, StudentInfo } from '../../types';
 import { LoadingState, ErrorState, Spinner } from '../../components/ui/States';
 import { Section, Field, Input, Textarea, Select, Button } from '../../components/ui/Form';
 
-export default function HomeVisitSelfReportPage() {
-  const { visitId, token } = useParams<{ visitId: string; token: string }>();
-  const { data: visit, loading, error } = useAsync(() => fetchHomeVisitById(visitId!), [visitId]);
+const currentAcademicYear = String(new Date().getFullYear() + 543);
+
+/** Finds the student's current home-visit record, or creates a fresh draft. */
+async function ensureVisit(student: Student): Promise<HomeVisit> {
+  const visits = await fetchHomeVisitsByStudent(student.sid);
+  if (visits[0]) return visits[0];
+
+  const advisor = await fetchAdvisorTeacherForClass(student.class_code);
+  const payload = {
+    studentId: student.sid,
+    studentName: studentDisplayName(student),
+    classId: student.class_code,
+    className: student.class_name ?? '',
+    departmentId: student.dep_id ?? '',
+    departmentName: student.dep_name ?? '',
+    level: '',
+    advisorTeacherId: advisor?.uid ?? '',
+    advisorTeacherName: advisor?.displayName ?? '',
+    academicYear: currentAcademicYear,
+    semester: '1',
+    visitDate: '',
+    studentInfo: emptyStudentInfo,
+    familyInfo: emptyFamilyInfo,
+    behaviorInfo: emptyBehaviorInfo,
+    parentOpinion: '',
+    advisorOpinion: '',
+    images: { homeVisitPhotos: [], mapImage: '' },
+    status: 'draft' as const,
+    createdBy: student.sid,
+  };
+  const id = await createHomeVisit(payload);
+  return { id, ...payload, createdAt: null, updatedAt: null };
+}
+
+export default function StudentHomeVisitPage() {
+  const { student, logout } = useStudentAuth();
+  const { data: visit, loading, error } = useAsync(() => ensureVisit(student!), [student?.sid]);
 
   const [studentInfo, setStudentInfo] = useState<StudentInfo>(emptyStudentInfo);
   const [familyInfo, setFamilyInfo] = useState<FamilyInfo>(emptyFamilyInfo);
@@ -38,12 +74,10 @@ export default function HomeVisitSelfReportPage() {
     setMapImage(visit.images.mapImage);
   }, [visit]);
 
+  if (!student) return null;
   if (loading) return <LoadingState />;
   if (error || !visit) {
-    return <ErrorState title="ไม่พบแบบฟอร์มนี้" description="ลิงก์อาจไม่ถูกต้อง กรุณาตรวจสอบกับครูที่ปรึกษา" />;
-  }
-  if (!visit.shareToken || visit.shareToken !== token) {
-    return <ErrorState title="ลิงก์ไม่ถูกต้อง" description="กรุณาตรวจสอบลิงก์ที่ได้รับจากครูที่ปรึกษาอีกครั้ง" />;
+    return <ErrorState title="เกิดข้อผิดพลาด" description="ไม่สามารถโหลดแบบฟอร์มได้ กรุณาลองใหม่อีกครั้ง" />;
   }
 
   async function handleMapUpload(files: FileList | null) {
@@ -95,6 +129,9 @@ export default function HomeVisitSelfReportPage() {
           </div>
           <p className="text-lg font-bold text-gray-900">บันทึกข้อมูลเรียบร้อยแล้ว</p>
           <p className="mt-2 text-sm text-gray-500">ขอบคุณที่กรอกข้อมูล ครูที่ปรึกษาจะนำไปใช้ประกอบการเยี่ยมบ้านต่อไป</p>
+          <Button variant="secondary" className="mt-4" onClick={() => setDone(false)}>
+            แก้ไขข้อมูลอีกครั้ง
+          </Button>
         </div>
       </div>
     );
@@ -103,13 +140,21 @@ export default function HomeVisitSelfReportPage() {
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8 pb-28">
       <div className="mx-auto max-w-xl">
-        <div className="mb-4 text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-lg font-bold text-white">
-            C+
+        <div className="mb-4 flex items-start justify-between">
+          <div className="flex-1 text-center">
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-lg font-bold text-white">
+              C+
+            </div>
+            <h1 className="text-lg font-bold text-gray-900">แบบกรอกข้อมูลก่อนเยี่ยมบ้าน</h1>
+            <p className="text-sm text-gray-500">{visit.studentName}</p>
+            <p className="text-xs text-gray-400">กรอกเฉพาะข้อมูลส่วนตัวและครอบครัวเบื้องต้น</p>
           </div>
-          <h1 className="text-lg font-bold text-gray-900">แบบกรอกข้อมูลก่อนเยี่ยมบ้าน</h1>
-          <p className="text-sm text-gray-500">{visit.studentName}</p>
-          <p className="text-xs text-gray-400">กรอกเฉพาะข้อมูลส่วนตัวและครอบครัวเบื้องต้น</p>
+        </div>
+
+        <div className="mb-4 flex justify-end">
+          <button type="button" onClick={logout} className="text-xs font-medium text-gray-500 hover:text-close-700">
+            ออกจากระบบ
+          </button>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white px-4 sm:px-5">
