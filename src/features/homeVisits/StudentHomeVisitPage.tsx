@@ -33,7 +33,8 @@ async function ensureVisit(student: Student): Promise<HomeVisit> {
     academicYear: currentAcademicYear,
     semester: '1',
     visitDate: '',
-    studentInfo: emptyStudentInfo,
+    // เลขบัตรประชาชนมีอยู่แล้วในทะเบียนผู้เรียน ไม่ต้องให้กรอกซ้ำ.
+    studentInfo: { ...emptyStudentInfo, citizenId: student.sidcard ?? '' },
     familyInfo: emptyFamilyInfo,
     behaviorInfo: emptyBehaviorInfo,
     parentOpinion: '',
@@ -65,9 +66,14 @@ export default function StudentHomeVisitPage() {
   const mapInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!visit) return;
-    // Recompute rather than trust a possibly-stale stored value — age is derived, not editable.
-    setStudentInfo({ ...visit.studentInfo, age: calculateAge(visit.studentInfo.birthDate) });
+    if (!visit || !student) return;
+    setStudentInfo({
+      ...visit.studentInfo,
+      // Recompute rather than trust a possibly-stale stored value — age is derived, not editable.
+      age: calculateAge(visit.studentInfo.birthDate),
+      // Backfill from the roster for records saved before citizenId was auto-filled.
+      citizenId: visit.studentInfo.citizenId || student.sidcard || '',
+    });
     setFamilyInfo(visit.familyInfo);
     setChronicDisease(visit.behaviorInfo.chronicDisease);
     setChronicDiseaseDetail(visit.behaviorInfo.chronicDiseaseDetail);
@@ -75,7 +81,7 @@ export default function StudentHomeVisitPage() {
     setCloseFriendPhone(visit.behaviorInfo.closeFriendPhone);
     setFamilyResponsibility(visit.behaviorInfo.familyResponsibility);
     setMapImage(visit.images.mapImage);
-  }, [visit]);
+  }, [visit, student]);
 
   if (!student) return null;
   if (loading) return <LoadingState />;
