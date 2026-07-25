@@ -260,8 +260,17 @@ export default function HomeVisitFormPage() {
             <Field label="รายได้มารดา (บาท/เดือน)">
               <Input value={familyInfo.motherIncome} onChange={(e) => setFamilyInfo({ ...familyInfo, motherIncome: e.target.value })} />
             </Field>
-            <Field label="สถานภาพบิดามารดา">
+            <Field label="สถานภาพบิดา">
               <Select value={familyInfo.fatherStatus} onChange={(e) => setFamilyInfo({ ...familyInfo, fatherStatus: e.target.value })}>
+                <option value="">เลือกสถานภาพ</option>
+                <option value="อยู่ด้วยกัน">อยู่ด้วยกัน</option>
+                <option value="หย่าร้าง">หย่าร้าง</option>
+                <option value="แยกกันอยู่">แยกกันอยู่</option>
+                <option value="เสียชีวิต">เสียชีวิต</option>
+              </Select>
+            </Field>
+            <Field label="สถานภาพมารดา">
+              <Select value={familyInfo.motherStatus} onChange={(e) => setFamilyInfo({ ...familyInfo, motherStatus: e.target.value })}>
                 <option value="">เลือกสถานภาพ</option>
                 <option value="อยู่ด้วยกัน">อยู่ด้วยกัน</option>
                 <option value="หย่าร้าง">หย่าร้าง</option>
