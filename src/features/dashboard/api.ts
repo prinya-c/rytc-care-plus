@@ -11,8 +11,8 @@ function summarize(
   referrals: unknown[],
 ): DashboardSummary {
   const screenedStudentIds = new Set(screenings.map((s) => s.studentId));
-  // Drafts (including records created only to carry a QR self-report
-  // token) don't count as a completed visit — only submitted ones do.
+  // Drafts (including records a student pre-filled before the actual visit)
+  // don't count as a completed visit — only submitted ones do.
   const visitedStudentIds = new Set(homeVisits.filter((v) => v.status === 'submitted').map((v) => v.studentId));
 
   return {
