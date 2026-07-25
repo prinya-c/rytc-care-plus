@@ -133,7 +133,9 @@ export default function HomeVisitListPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {data.students.map((s) => {
             const visit = data.visitByStudent.get(s.sid);
-            const visited = !!visit;
+            // A record created just to carry the QR share token (or saved as
+            // a draft) is not a completed visit — only a submitted one is.
+            const visited = visit?.status === 'submitted';
             return (
               <div
                 key={s.sid}
@@ -141,7 +143,7 @@ export default function HomeVisitListPage() {
                   visited ? 'border-trust-100 bg-trust-50' : 'border-close-100 bg-close-50'
                 }`}
               >
-                {visited && (
+                {visit && (
                   <button
                     type="button"
                     title="ลบ"
@@ -156,16 +158,20 @@ export default function HomeVisitListPage() {
                 <div
                   role="button"
                   tabIndex={0}
-                  onClick={() => navigate(visited ? `/home-visits/${visit.id}/edit` : `/home-visits/new/${s.sid}`)}
+                  onClick={() => navigate(visit ? `/home-visits/${visit.id}/edit` : `/home-visits/new/${s.sid}`)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') navigate(visited ? `/home-visits/${visit!.id}/edit` : `/home-visits/new/${s.sid}`);
+                    if (e.key === 'Enter') navigate(visit ? `/home-visits/${visit.id}/edit` : `/home-visits/new/${s.sid}`);
                   }}
                   className="cursor-pointer"
                 >
                   <p className="pr-8 text-sm font-bold leading-snug text-gray-900">{studentDisplayName(s)}</p>
                   <p className="mt-1 text-xs text-gray-500">{s.class_name}</p>
                   <p className={`mt-3 text-sm font-semibold ${visited ? 'text-trust-700' : 'text-close-700'}`}>
-                    {visited ? `เยี่ยมบ้านแล้ว · ${visit.visitDate || 'ยังไม่ระบุวันที่'}` : 'ยังไม่ได้เยี่ยมบ้าน'}
+                    {visited
+                      ? `เยี่ยมบ้านแล้ว · ${visit!.visitDate || 'ยังไม่ระบุวันที่'}`
+                      : visit
+                        ? 'ยังไม่ได้เยี่ยมบ้าน · มีแบบร่าง'
+                        : 'ยังไม่ได้เยี่ยมบ้าน'}
                   </p>
                 </div>
 

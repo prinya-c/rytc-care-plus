@@ -35,7 +35,8 @@ export function useStudentRoster(profile: UserProfile) {
     for (const s of screenings) {
       if (!latestScreeningByStudent.has(s.studentId)) latestScreeningByStudent.set(s.studentId, s.resultGroup);
     }
-    const visitedSet = new Set(homeVisits.map((v) => v.studentId));
+    // Only a submitted visit counts — drafts (e.g. QR self-report shells) don't.
+    const visitedSet = new Set(homeVisits.filter((v) => v.status === 'submitted').map((v) => v.studentId));
     const referredSet = new Set(referrals.map((r) => r.studentId));
 
     const rows: RosterRow[] = students.map((s) => ({
