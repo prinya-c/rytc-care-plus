@@ -30,7 +30,7 @@ export default function StudentInfoListPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">ข้อมูลนักเรียน</h1>
+        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">ข้อมูลผู้เรียน</h1>
         <p className="text-sm text-gray-500">ทั้งหมด {data.students.length} คน · ดูและแก้ไขข้อมูลส่วนตัว ครอบครัว และพฤติกรรมของผู้เรียน</p>
       </div>
 

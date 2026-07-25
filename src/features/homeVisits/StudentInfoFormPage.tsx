@@ -91,7 +91,7 @@ export default function StudentInfoFormPage() {
           createdBy: profile.uid,
         });
       }
-      showToast('บันทึกข้อมูลนักเรียนเรียบร้อยแล้ว');
+      showToast('บันทึกข้อมูลผู้เรียนเรียบร้อยแล้ว');
       navigate('/student-info');
     } catch {
       showToast('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error');
@@ -103,7 +103,7 @@ export default function StudentInfoFormPage() {
   return (
     <div className="space-y-5 pb-24">
       <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">ข้อมูลนักเรียน</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">ข้อมูลผู้เรียน</p>
         <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">{studentDisplayName(student)}</h1>
         {subtitle && <p className="mt-0.5 text-sm text-gray-500">{subtitle}</p>}
       </div>

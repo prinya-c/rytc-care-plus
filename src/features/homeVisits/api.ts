@@ -32,7 +32,7 @@ export async function updateHomeVisit(id: string, data: Partial<HomeVisit>) {
   return patchDoc('home-visits', id, data);
 }
 
-/** Saves only the ข้อมูลนักเรียน section (studentInfo/familyInfo/behaviorInfo), stamping studentInfoUpdatedAt — used by both the student self-report page and the teacher-facing ข้อมูลนักเรียน edit page. */
+/** Saves only the ข้อมูลผู้เรียน section (studentInfo/familyInfo/behaviorInfo), stamping studentInfoUpdatedAt — used by both the student self-report page and the teacher-facing ข้อมูลผู้เรียน edit page. */
 export async function updateStudentInfoSection(
   id: string,
   data: { studentInfo: StudentInfo; familyInfo: FamilyInfo; behaviorInfo: BehaviorInfo },
