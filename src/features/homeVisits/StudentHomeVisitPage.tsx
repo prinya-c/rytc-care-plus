@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStudentAuth } from '../studentAuth/StudentAuthContext';
 import { useAsync } from '../../hooks/useAsync';
-import { fetchHomeVisitsByStudent, createHomeVisit, updateHomeVisit } from './api';
+import { fetchHomeVisitsByStudent, createHomeVisit, updateHomeVisit, updateStudentInfoSection } from './api';
 import { fetchAdvisorTeacherForClass } from '../users/api';
 import { uploadHomeVisitImage } from '../../lib/storage';
 import { emptyStudentInfo, emptyFamilyInfo, emptyBehaviorInfo } from './HomeVisitFormPage';
@@ -39,6 +39,7 @@ async function ensureVisit(student: Student): Promise<HomeVisit> {
     behaviorInfo: emptyBehaviorInfo,
     parentOpinion: '',
     advisorOpinion: '',
+    studentInfoUpdatedAt: null,
     images: { homeVisitPhotos: [], mapImage: '' },
     status: 'draft' as const,
     createdBy: student.sid,
@@ -108,7 +109,7 @@ export default function StudentHomeVisitPage() {
     setSaving(true);
     setSaveError(false);
     try {
-      await updateHomeVisit(visit!.id, {
+      await updateStudentInfoSection(visit!.id, {
         studentInfo,
         familyInfo,
         behaviorInfo: {
@@ -119,8 +120,8 @@ export default function StudentHomeVisitPage() {
           closeFriendPhone,
           familyResponsibility,
         },
-        images: { ...visit!.images, mapImage },
       });
+      await updateHomeVisit(visit!.id, { images: { ...visit!.images, mapImage } });
       setDone(true);
     } catch {
       setSaveError(true);

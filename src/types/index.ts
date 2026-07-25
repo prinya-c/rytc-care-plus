@@ -190,6 +190,8 @@ export interface HomeVisit {
   studentInfo: StudentInfo;
   familyInfo: FamilyInfo;
   behaviorInfo: BehaviorInfo;
+  /** Set whenever studentInfo/familyInfo/behaviorInfo is saved (by the student or the teacher) — drives the "อัพเดทแล้ว" status on the ข้อมูลนักเรียน page. */
+  studentInfoUpdatedAt: unknown | null;
 
   parentOpinion: string;
   advisorOpinion: string;
