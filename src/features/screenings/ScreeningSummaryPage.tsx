@@ -332,7 +332,7 @@ export default function ScreeningSummaryPage() {
             <div className="hidden print:block text-sm leading-relaxed">
               <div className="relative flex items-center justify-center">
                 <img
-                  src="/300px-Thai_government_Garuda.jpg"
+                  src={`${import.meta.env.BASE_URL}300px-Thai_government_Garuda.jpg`}
                   alt="ครุฑ"
                   className="absolute left-0 h-16 w-auto"
                 />
