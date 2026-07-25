@@ -12,15 +12,20 @@ service firebase.storage {
     // Home visit photos and map images.
     match /home-visits/{studentId}/{fileName} {
       allow read: if true;
-      allow write: if request.resource.size < 10 * 1024 * 1024
+      // request.resource is null on delete, so a delete must be its own
+      // branch — folding it into `write` alongside the size/type check
+      // would evaluate that check against a null resource and always deny.
+      allow create, update: if request.resource.size < 10 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
+      allow delete: if true;
     }
 
     // Homeroom activity log photos.
     match /homeroom-logs/{classId}/{fileName} {
       allow read: if true;
-      allow write: if request.resource.size < 10 * 1024 * 1024
+      allow create, update: if request.resource.size < 10 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
+      allow delete: if true;
     }
 
     match /{allPaths=**} {
