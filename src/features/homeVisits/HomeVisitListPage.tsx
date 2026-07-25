@@ -8,17 +8,55 @@ import { fetchAllStudents, fetchStudentsByClasses, studentDisplayName } from '..
 import { emptyStudentInfo, emptyFamilyInfo, emptyBehaviorInfo } from './HomeVisitFormPage';
 import { deleteImageByUrl } from '../../lib/storage';
 import { canViewCollegeOverview } from '../../utils/rbac';
-import { LoadingState, ErrorState, EmptyState, Spinner } from '../../components/ui/States';
-import { Button } from '../../components/ui/Form';
+import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
 import { Icon } from '../../components/ui/Icon';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
-import type { HomeVisit, Student } from '../../types';
+import type { HomeVisit, Student, UserProfile } from '../../types';
 
 const currentAcademicYear = String(new Date().getFullYear() + 543);
 
 function selfReportUrl(visitId: string, token: string) {
   return `${window.location.origin}${import.meta.env.BASE_URL}home-visits/self-report/${visitId}/${token}`;
+}
+
+/**
+ * Guarantees the student has a HomeVisit doc carrying a shareToken, creating
+ * a draft (or back-filling a missing token) if needed, so the card can show
+ * the self-report QR immediately without the teacher pressing anything.
+ */
+async function ensureShareableVisit(student: Student, existing: HomeVisit | undefined, profile: UserProfile, teacherId: string): Promise<HomeVisit> {
+  if (existing?.shareToken) return existing;
+  const token = crypto.randomUUID();
+  if (existing) {
+    await updateHomeVisit(existing.id, { shareToken: token });
+    return { ...existing, shareToken: token };
+  }
+  const payload = {
+    studentId: student.sid,
+    studentName: studentDisplayName(student),
+    classId: student.class_code,
+    className: student.class_name ?? '',
+    departmentId: student.dep_id ?? '',
+    departmentName: student.dep_name ?? '',
+    level: '',
+    advisorTeacherId: teacherId,
+    advisorTeacherName: profile.displayName,
+    academicYear: currentAcademicYear,
+    semester: '1',
+    visitDate: '',
+    studentInfo: emptyStudentInfo,
+    familyInfo: emptyFamilyInfo,
+    behaviorInfo: emptyBehaviorInfo,
+    parentOpinion: '',
+    advisorOpinion: '',
+    images: { homeVisitPhotos: [], mapImage: '' },
+    shareToken: token,
+    status: 'draft' as const,
+    createdBy: profile.uid,
+  };
+  const id = await createHomeVisit(payload);
+  return { id, ...payload, createdAt: null, updatedAt: null };
 }
 
 export default function HomeVisitListPage() {
@@ -29,8 +67,6 @@ export default function HomeVisitListPage() {
   const overview = canViewCollegeOverview(profile?.role);
   const teacherId = profile?.teacherId ?? profile?.uid ?? '';
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [sharingSid, setSharingSid] = useState<string | null>(null);
-  const [qrModal, setQrModal] = useState<{ url: string; dataUrl: string } | null>(null);
 
   const { data, loading, error, refetch } = useAsync(async () => {
     const [visits, students] = await Promise.all([
@@ -39,7 +75,31 @@ export default function HomeVisitListPage() {
     ]);
     const visitByStudent = new Map<string, HomeVisit>();
     for (const v of visits) if (!visitByStudent.has(v.studentId)) visitByStudent.set(v.studentId, v);
-    return { students, visitByStudent };
+
+    // Advisor teachers see a ready-to-scan QR on every card, which needs a
+    // token-carrying doc per student. Overview roles (admin/advisor_staff)
+    // browse the whole college — auto-creating drafts for every student in
+    // the college would flood the collection, so for them QRs appear only
+    // where a shareable doc already exists.
+    if (!overview && profile) {
+      await Promise.all(
+        students.map(async (s) => {
+          const ensured = await ensureShareableVisit(s, visitByStudent.get(s.sid), profile, teacherId);
+          visitByStudent.set(s.sid, ensured);
+        }),
+      );
+    }
+
+    const qrByStudent = new Map<string, string>();
+    await Promise.all(
+      students.map(async (s) => {
+        const v = visitByStudent.get(s.sid);
+        if (!v?.shareToken) return;
+        qrByStudent.set(s.sid, await QRCode.toDataURL(selfReportUrl(v.id, v.shareToken), { width: 320, margin: 1 }));
+      }),
+    );
+
+    return { students, visitByStudent, qrByStudent };
   }, [overview, teacherId, JSON.stringify(profile?.classIds)]);
 
   async function handleDelete(visit: HomeVisit) {
@@ -64,56 +124,6 @@ export default function HomeVisitListPage() {
     }
   }
 
-  /** Creates a draft visit if none exists yet, ensures it has a share token, then shows the QR. */
-  async function handleShareQr(student: Student, existingVisit?: HomeVisit) {
-    if (!profile) return;
-    setSharingSid(student.sid);
-    try {
-      let visitId = existingVisit?.id;
-      let token = existingVisit?.shareToken;
-
-      if (!token) token = crypto.randomUUID();
-
-      if (!visitId) {
-        visitId = await createHomeVisit({
-          studentId: student.sid,
-          studentName: studentDisplayName(student),
-          classId: student.class_code,
-          className: student.class_name ?? '',
-          departmentId: student.dep_id ?? '',
-          departmentName: student.dep_name ?? '',
-          level: '',
-          advisorTeacherId: teacherId,
-          advisorTeacherName: profile.displayName,
-          academicYear: currentAcademicYear,
-          semester: '1',
-          visitDate: '',
-          studentInfo: emptyStudentInfo,
-          familyInfo: emptyFamilyInfo,
-          behaviorInfo: emptyBehaviorInfo,
-          parentOpinion: '',
-          advisorOpinion: '',
-          images: { homeVisitPhotos: [], mapImage: '' },
-          shareToken: token,
-          status: 'draft',
-          createdBy: profile.uid,
-        });
-        refetch();
-      } else if (!existingVisit?.shareToken) {
-        await updateHomeVisit(visitId, { shareToken: token });
-        refetch();
-      }
-
-      const url = selfReportUrl(visitId, token);
-      const dataUrl = await QRCode.toDataURL(url, { width: 240, margin: 1 });
-      setQrModal({ url, dataUrl });
-    } catch {
-      showToast('สร้างลิงก์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error');
-    } finally {
-      setSharingSid(null);
-    }
-  }
-
   if (loading) return <LoadingState />;
   if (error || !data) return <ErrorState onRetry={refetch} />;
 
@@ -121,7 +131,9 @@ export default function HomeVisitListPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">เยี่ยมบ้าน</h1>
-        <p className="text-sm text-gray-500">ทั้งหมด {data.students.length} คน</p>
+        <p className="text-sm text-gray-500">
+          ทั้งหมด {data.students.length} คน · ให้นักเรียนสแกน QR บนการ์ดเพื่อกรอกข้อมูลส่วนตัวล่วงหน้า
+        </p>
       </div>
 
       {data.students.length === 0 ? (
@@ -133,9 +145,9 @@ export default function HomeVisitListPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {data.students.map((s) => {
             const visit = data.visitByStudent.get(s.sid);
-            // A record created just to carry the QR share token (or saved as
-            // a draft) is not a completed visit — only a submitted one is.
+            // Auto-created draft shells (QR carriers) don't count as a visit.
             const visited = visit?.status === 'submitted';
+            const qr = data.qrByStudent.get(s.sid);
             return (
               <div
                 key={s.sid}
@@ -143,7 +155,7 @@ export default function HomeVisitListPage() {
                   visited ? 'border-trust-100 bg-trust-50' : 'border-close-100 bg-close-50'
                 }`}
               >
-                {visit && (
+                {visited && (
                   <button
                     type="button"
                     title="ลบ"
@@ -166,53 +178,33 @@ export default function HomeVisitListPage() {
                 >
                   <p className="pr-8 text-sm font-bold leading-snug text-gray-900">{studentDisplayName(s)}</p>
                   <p className="mt-1 text-xs text-gray-500">{s.class_name}</p>
-                  <p className={`mt-3 text-sm font-semibold ${visited ? 'text-trust-700' : 'text-close-700'}`}>
-                    {visited
-                      ? `เยี่ยมบ้านแล้ว · ${visit!.visitDate || 'ยังไม่ระบุวันที่'}`
-                      : visit
-                        ? 'ยังไม่ได้เยี่ยมบ้าน · มีแบบร่าง'
-                        : 'ยังไม่ได้เยี่ยมบ้าน'}
+                  <p className={`mt-2 text-sm font-semibold ${visited ? 'text-trust-700' : 'text-close-700'}`}>
+                    {visited ? `เยี่ยมบ้านแล้ว · ${visit!.visitDate || 'ยังไม่ระบุวันที่'}` : 'ยังไม่ได้เยี่ยมบ้าน'}
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  disabled={sharingSid === s.sid}
-                  onClick={() => handleShareQr(s, visit)}
-                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  {sharingSid === s.sid ? <Spinner className="h-3.5 w-3.5" /> : <Icon name="document" className="h-3.5 w-3.5" />}
-                  แชร์ QR ให้นักเรียนกรอกข้อมูล
-                </button>
+                {qr && (
+                  <div className="mt-3 flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-2">
+                    <img src={qr} alt="QR ให้นักเรียนกรอกข้อมูล" className="h-24 w-24 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-700">ให้นักเรียนสแกนเพื่อกรอกข้อมูลส่วนตัว</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const v = data.visitByStudent.get(s.sid)!;
+                          navigator.clipboard.writeText(selfReportUrl(v.id, v.shareToken!));
+                          showToast('คัดลอกลิงก์แล้ว');
+                        }}
+                        className="mt-1.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-brand-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                      >
+                        คัดลอกลิงก์
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
-        </div>
-      )}
-
-      {qrModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-xl">
-            <h3 className="text-base font-semibold text-gray-900">ให้นักเรียนสแกน QR เพื่อกรอกข้อมูล</h3>
-            <p className="mt-1 text-xs text-gray-500">เฉพาะข้อมูลส่วนตัวและครอบครัวเบื้องต้น ไม่รวมส่วนที่ครูต้องประเมิน</p>
-            <img src={qrModal.dataUrl} alt="QR code" className="mx-auto mt-4 h-56 w-56" />
-            <div className="mt-3 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5">
-              <input readOnly value={qrModal.url} className="min-w-0 flex-1 truncate bg-transparent text-xs text-gray-600" />
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(qrModal.url);
-                  showToast('คัดลอกลิงก์แล้ว');
-                }}
-                className="shrink-0 rounded-md bg-white px-2 py-1 text-xs font-medium text-brand-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-              >
-                คัดลอก
-              </button>
-            </div>
-            <Button variant="secondary" onClick={() => setQrModal(null)} className="mt-4 w-full">
-              ปิด
-            </Button>
-          </div>
         </div>
       )}
     </div>
