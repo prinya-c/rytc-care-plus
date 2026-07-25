@@ -2,25 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchHomeroomLogById } from './api';
+import { formatThaiDate } from '../../utils/thaiDate';
 import { LoadingState, ErrorState } from '../../components/ui/States';
 import { Button } from '../../components/ui/Form';
-
-const THAI_MONTHS = [
-  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
-];
-
-/** Parse an `<input type="date">` value (`YYYY-MM-DD`) as a local-time Date, avoiding UTC day-shift. */
-function parseDateInputValue(value: string) {
-  const [y, m, d] = value.split('-').map(Number);
-  return new Date(y, (m || 1) - 1, d || 1);
-}
-
-function formatThaiDate(value: string) {
-  if (!value) return '.....................';
-  const date = parseDateInputValue(value);
-  return `${date.getDate()} ${THAI_MONTHS[date.getMonth()]} ${date.getFullYear() + 543}`;
-}
 
 export default function HomeroomLogDetailPage() {
   const { logId } = useParams();

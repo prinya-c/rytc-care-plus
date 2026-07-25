@@ -59,9 +59,18 @@ export default function HomeVisitListPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">เยี่ยมบ้าน</h1>
-        <p className="text-sm text-gray-500">ทั้งหมด {data.students.length} คน</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">เยี่ยมบ้าน</h1>
+          <p className="text-sm text-gray-500">ทั้งหมด {data.students.length} คน</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/home-visits/memo')}
+          className="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+        >
+          พิมพ์บันทึกข้อความ
+        </button>
       </div>
 
       {data.students.length === 0 ? (
