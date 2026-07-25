@@ -53,6 +53,15 @@ export function studentDisplayName(student: Student) {
   return student.sname;
 }
 
+/** "แผนกวิชา{dep_name} · {short_name}" for a subtitle under the student's name, e.g. on home-visit forms. */
+export function studentSubtitle(student: Student | null | undefined): string {
+  if (!student) return '';
+  const parts: string[] = [];
+  if (student.dep_name) parts.push(`แผนกวิชา${student.dep_name}`);
+  if (student.short_name) parts.push(student.short_name);
+  return parts.join(' · ');
+}
+
 function normalizeName(name?: string) {
   return (name ?? '').replace(/\s+/g, ' ').trim();
 }

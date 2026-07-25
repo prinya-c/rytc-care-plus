@@ -5,7 +5,9 @@ import { fetchHomeVisitsByStudent, createHomeVisit, updateHomeVisit } from './ap
 import { fetchAdvisorTeacherForClass } from '../users/api';
 import { uploadHomeVisitImage } from '../../lib/storage';
 import { emptyStudentInfo, emptyFamilyInfo, emptyBehaviorInfo } from './HomeVisitFormPage';
-import { studentDisplayName } from '../students/api';
+import { studentDisplayName, studentSubtitle } from '../students/api';
+import { calculateAge } from '../../utils/age';
+import { ThaiAddressFields } from './ThaiAddressFields';
 import type { FamilyInfo, HomeVisit, Student, StudentInfo } from '../../types';
 import { LoadingState, ErrorState, Spinner } from '../../components/ui/States';
 import { Section, Field, Input, Textarea, Select, Button } from '../../components/ui/Form';
@@ -64,7 +66,8 @@ export default function StudentHomeVisitPage() {
 
   useEffect(() => {
     if (!visit) return;
-    setStudentInfo(visit.studentInfo);
+    // Recompute rather than trust a possibly-stale stored value — age is derived, not editable.
+    setStudentInfo({ ...visit.studentInfo, age: calculateAge(visit.studentInfo.birthDate) });
     setFamilyInfo(visit.familyInfo);
     setChronicDisease(visit.behaviorInfo.chronicDisease);
     setChronicDiseaseDetail(visit.behaviorInfo.chronicDiseaseDetail);
@@ -145,9 +148,10 @@ export default function StudentHomeVisitPage() {
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-lg font-bold text-white">
               C+
             </div>
-            <h1 className="text-lg font-bold text-gray-900">แบบกรอกข้อมูลก่อนเยี่ยมบ้าน</h1>
-            <p className="text-sm text-gray-500">{visit.studentName}</p>
-            <p className="text-xs text-gray-400">กรอกเฉพาะข้อมูลส่วนตัวและครอบครัวเบื้องต้น</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">แบบกรอกข้อมูลก่อนเยี่ยมบ้าน</p>
+            <h1 className="text-lg font-bold text-gray-900 sm:text-xl">{visit.studentName}</h1>
+            {studentSubtitle(student) && <p className="text-sm text-gray-500">{studentSubtitle(student)}</p>}
+            <p className="mt-1 text-xs text-gray-400">กรอกเฉพาะข้อมูลส่วนตัวและครอบครัวเบื้องต้น</p>
           </div>
         </div>
 
@@ -167,10 +171,14 @@ export default function StudentHomeVisitPage() {
                 <Input value={studentInfo.nickname} onChange={(e) => setStudentInfo({ ...studentInfo, nickname: e.target.value })} />
               </Field>
               <Field label="วันเกิด">
-                <Input type="date" value={studentInfo.birthDate} onChange={(e) => setStudentInfo({ ...studentInfo, birthDate: e.target.value })} />
+                <Input
+                  type="date"
+                  value={studentInfo.birthDate}
+                  onChange={(e) => setStudentInfo({ ...studentInfo, birthDate: e.target.value, age: calculateAge(e.target.value) })}
+                />
               </Field>
-              <Field label="อายุ">
-                <Input value={studentInfo.age} onChange={(e) => setStudentInfo({ ...studentInfo, age: e.target.value })} />
+              <Field label="อายุ" hint="คำนวณจากวันเกิดโดยอัตโนมัติ">
+                <Input value={studentInfo.age} disabled className="bg-gray-50 text-gray-500" />
               </Field>
               <Field label="เบอร์โทรศัพท์">
                 <Input value={studentInfo.phone} onChange={(e) => setStudentInfo({ ...studentInfo, phone: e.target.value })} />
@@ -182,20 +190,15 @@ export default function StudentHomeVisitPage() {
             <Field label="ที่อยู่">
               <Textarea rows={2} value={studentInfo.address} onChange={(e) => setStudentInfo({ ...studentInfo, address: e.target.value })} />
             </Field>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <Field label="จังหวัด">
-                <Input value={studentInfo.province} onChange={(e) => setStudentInfo({ ...studentInfo, province: e.target.value })} />
-              </Field>
-              <Field label="อำเภอ">
-                <Input value={studentInfo.district} onChange={(e) => setStudentInfo({ ...studentInfo, district: e.target.value })} />
-              </Field>
-              <Field label="ตำบล">
-                <Input value={studentInfo.subdistrict} onChange={(e) => setStudentInfo({ ...studentInfo, subdistrict: e.target.value })} />
-              </Field>
-              <Field label="รหัสไปรษณีย์">
-                <Input value={studentInfo.postalCode} onChange={(e) => setStudentInfo({ ...studentInfo, postalCode: e.target.value })} />
-              </Field>
-            </div>
+            <ThaiAddressFields
+              value={{
+                postalCode: studentInfo.postalCode,
+                province: studentInfo.province,
+                district: studentInfo.district,
+                subdistrict: studentInfo.subdistrict,
+              }}
+              onChange={(next) => setStudentInfo({ ...studentInfo, ...next })}
+            />
           </Section>
 
           <Section title="ข้อมูลครอบครัว">
