@@ -7,11 +7,13 @@ import type { DashboardSummary, ReferralInboxSummary, TargetWork } from '../../t
 function summarize(
   totalStudents: number,
   screenings: { studentId: string; resultGroup: string }[],
-  homeVisits: { studentId: string }[],
+  homeVisits: { studentId: string; status: string }[],
   referrals: unknown[],
 ): DashboardSummary {
   const screenedStudentIds = new Set(screenings.map((s) => s.studentId));
-  const visitedStudentIds = new Set(homeVisits.map((v) => v.studentId));
+  // Drafts (including records created only to carry a QR self-report
+  // token) don't count as a completed visit — only submitted ones do.
+  const visitedStudentIds = new Set(homeVisits.filter((v) => v.status === 'submitted').map((v) => v.studentId));
 
   return {
     totalStudents,

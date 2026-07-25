@@ -29,7 +29,8 @@ export default function HomeVisitSummaryPage() {
     if (!data) return [];
     let students = data.students;
     if (departmentName) students = students.filter((s) => s.dep_name === departmentName);
-    const visitedIds = new Set(data.visits.map((v) => v.studentId));
+    // Only a submitted visit counts — drafts (e.g. QR self-report shells) don't.
+    const visitedIds = new Set(data.visits.filter((v) => v.status === 'submitted').map((v) => v.studentId));
     return students.map((s) => ({ ...s, visited: visitedIds.has(s.sid) }));
   }, [data, departmentName]);
 
