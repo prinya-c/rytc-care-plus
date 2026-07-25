@@ -14,6 +14,49 @@ import { Section, Field, Input, Select, Button } from '../../components/ui/Form'
 
 const currentAcademicYear = String(new Date().getFullYear() + 543);
 
+/**
+ * Fields the student must fill before submitting. Deliberately excludes:
+ * age/ageMonths (derived from birthDate, not directly editable), email
+ * (often genuinely absent), moo/soi/road (a real address rarely has all
+ * three), and chronicDiseaseDetail (blank is normal when there's no
+ * condition to describe) — everything else must be non-empty, with "-" as
+ * the escape hatch for a field that's genuinely not applicable.
+ */
+const REQUIRED_STUDENT_INFO_FIELDS: { key: keyof StudentInfo; label: string }[] = [
+  { key: 'citizenId', label: 'เลขประจำตัวประชาชน' },
+  { key: 'nickname', label: 'ชื่อเล่น' },
+  { key: 'enrollmentYear', label: 'ปีการศึกษาที่เข้าเรียน' },
+  { key: 'birthDate', label: 'วันเกิด' },
+  { key: 'phone', label: 'เบอร์โทรศัพท์' },
+  { key: 'houseNumber', label: 'ที่อยู่เลขที่' },
+  { key: 'postalCode', label: 'รหัสไปรษณีย์' },
+  { key: 'subdistrict', label: 'ตำบล' },
+  { key: 'district', label: 'อำเภอ' },
+  { key: 'province', label: 'จังหวัด' },
+];
+
+const REQUIRED_FAMILY_INFO_FIELDS: { key: keyof FamilyInfo; label: string }[] = [
+  { key: 'fatherName', label: 'ชื่อบิดา' },
+  { key: 'motherName', label: 'ชื่อมารดา' },
+  { key: 'fatherOccupation', label: 'อาชีพบิดา' },
+  { key: 'motherOccupation', label: 'อาชีพมารดา' },
+  { key: 'fatherPhone', label: 'เบอร์โทรบิดา' },
+  { key: 'motherPhone', label: 'เบอร์โทรมารดา' },
+  { key: 'fatherIncome', label: 'รายได้บิดา' },
+  { key: 'motherIncome', label: 'รายได้มารดา' },
+  { key: 'fatherStatus', label: 'สถานภาพบิดา' },
+  { key: 'motherStatus', label: 'สถานภาพมารดา' },
+  { key: 'houseType', label: 'ลักษณะที่อยู่อาศัย' },
+  { key: 'siblingsTotal', label: 'จำนวนพี่น้องทั้งหมด' },
+  { key: 'birthOrder', label: 'เป็นบุตรคนที่' },
+  { key: 'maleSiblings', label: 'พี่น้องชาย' },
+  { key: 'femaleSiblings', label: 'พี่น้องหญิง' },
+  { key: 'currentGuardian', label: 'ผู้ที่นักเรียนอาศัยอยู่ด้วย' },
+  { key: 'guardianRelationship', label: 'ความเกี่ยวข้องกับผู้ปกครอง' },
+  { key: 'emergencyContactName', label: 'บุคคลที่สามารถติดต่อได้' },
+  { key: 'emergencyContactPhone', label: 'เบอร์โทรบุคคลที่ติดต่อได้' },
+];
+
 /** Finds the student's current home-visit record, or creates a fresh draft. */
 async function ensureVisit(student: Student): Promise<HomeVisit> {
   const visits = await fetchHomeVisitsByStudent(student.sid);
@@ -92,6 +135,15 @@ export default function StudentHomeVisitPage() {
     return <ErrorState title="เกิดข้อผิดพลาด" description="ไม่สามารถโหลดแบบฟอร์มได้ กรุณาลองใหม่อีกครั้ง" />;
   }
 
+  const missingFields = [
+    ...REQUIRED_STUDENT_INFO_FIELDS.filter(({ key }) => !studentInfo[key].trim()).map(({ label }) => label),
+    ...REQUIRED_FAMILY_INFO_FIELDS.filter(({ key }) => !familyInfo[key].trim()).map(({ label }) => label),
+    ...(!chronicDisease.trim() ? ['โรคประจำตัว'] : []),
+    ...(!closeFriendName.trim() ? ['ชื่อเพื่อนสนิท'] : []),
+    ...(!closeFriendPhone.trim() ? ['เบอร์โทรเพื่อนสนิท'] : []),
+    ...(!familyResponsibility.trim() ? ['ภารกิจที่ได้รับมอบหมายจากครอบครัว'] : []),
+  ];
+
   async function handleMapUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
     setUploading(true);
@@ -106,6 +158,7 @@ export default function StudentHomeVisitPage() {
   }
 
   async function handleSubmit() {
+    if (missingFields.length > 0) return;
     setSaving(true);
     setSaveError(false);
     try {
@@ -371,8 +424,14 @@ export default function StudentHomeVisitPage() {
 
         {saveError && <p className="mt-3 text-center text-sm text-close-700">บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</p>}
 
+        {missingFields.length > 0 && (
+          <p className="mt-3 text-sm text-close-700">
+            กรอกข้อมูลยังไม่ครบ ({missingFields.length} ช่อง) — หากไม่ทราบข้อมูลบางช่อง ให้ใส่ "-" แทน: {missingFields.join(', ')}
+          </p>
+        )}
+
         <div className="mt-4 flex justify-end">
-          <Button variant="primary" loading={saving} onClick={handleSubmit}>
+          <Button variant="primary" loading={saving} disabled={missingFields.length > 0} onClick={handleSubmit}>
             ส่งข้อมูล
           </Button>
         </div>
