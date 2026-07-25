@@ -100,14 +100,22 @@ export default function HomeVisitFormPage() {
     if (data?.mode === 'edit' && data.existing) {
       const v = data.existing;
       setVisitDate(v.visitDate);
-      // Recompute rather than trust a possibly-stale stored value — age is derived, not editable.
-      setStudentInfo({ ...v.studentInfo, age: calculateAge(v.studentInfo.birthDate) });
+      setStudentInfo({
+        ...v.studentInfo,
+        // Recompute rather than trust a possibly-stale stored value — age is derived, not editable.
+        age: calculateAge(v.studentInfo.birthDate),
+        // Backfill from the roster for records saved before citizenId was auto-filled.
+        citizenId: v.studentInfo.citizenId || data.student?.sidcard || '',
+      });
       setFamilyInfo(v.familyInfo);
       setBehaviorInfo(v.behaviorInfo);
       setParentOpinion(v.parentOpinion);
       setAdvisorOpinion(v.advisorOpinion);
       setHomeVisitPhotos(v.images.homeVisitPhotos);
       setMapImage(v.images.mapImage);
+    } else if (data?.mode === 'new' && data.student?.sidcard) {
+      // เลขบัตรประชาชนมีอยู่แล้วในทะเบียนผู้เรียน ไม่ต้องให้กรอกซ้ำ.
+      setStudentInfo((prev) => ({ ...prev, citizenId: data.student!.sidcard! }));
     }
   }, [data]);
 
