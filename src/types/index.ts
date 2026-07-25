@@ -192,6 +192,9 @@ export interface HomeVisit {
     mapImage: string;
   };
 
+  /** Secret token for the public self-report link (QR code) — see HomeVisitSelfReportPage. */
+  shareToken?: string;
+
   status: DocStatus;
   createdBy: string;
   createdAt: unknown;
