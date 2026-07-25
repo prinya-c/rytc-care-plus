@@ -10,7 +10,7 @@ import { calculateAge } from '../../utils/age';
 import { ThaiAddressFields } from './ThaiAddressFields';
 import type { FamilyInfo, HomeVisit, Student, StudentInfo } from '../../types';
 import { LoadingState, ErrorState, Spinner } from '../../components/ui/States';
-import { Section, Field, Input, Textarea, Select, Button } from '../../components/ui/Form';
+import { Section, Field, Input, Select, Button } from '../../components/ui/Form';
 
 const currentAcademicYear = String(new Date().getFullYear() + 543);
 
@@ -67,10 +67,12 @@ export default function StudentHomeVisitPage() {
 
   useEffect(() => {
     if (!visit || !student) return;
+    const age = calculateAge(visit.studentInfo.birthDate);
     setStudentInfo({
       ...visit.studentInfo,
       // Recompute rather than trust a possibly-stale stored value — age is derived, not editable.
-      age: calculateAge(visit.studentInfo.birthDate),
+      age: age.years,
+      ageMonths: age.months,
       // Backfill from the roster for records saved before citizenId was auto-filled.
       citizenId: visit.studentInfo.citizenId || student.sidcard || '',
     });
@@ -176,15 +178,26 @@ export default function StudentHomeVisitPage() {
               <Field label="ชื่อเล่น">
                 <Input value={studentInfo.nickname} onChange={(e) => setStudentInfo({ ...studentInfo, nickname: e.target.value })} />
               </Field>
+              <Field label="ปีการศึกษาที่เข้าเรียน">
+                <Input value={studentInfo.enrollmentYear} onChange={(e) => setStudentInfo({ ...studentInfo, enrollmentYear: e.target.value })} placeholder="เช่น 2567" />
+              </Field>
               <Field label="วันเกิด">
                 <Input
                   type="date"
                   value={studentInfo.birthDate}
-                  onChange={(e) => setStudentInfo({ ...studentInfo, birthDate: e.target.value, age: calculateAge(e.target.value) })}
+                  onChange={(e) => {
+                    const age = calculateAge(e.target.value);
+                    setStudentInfo({ ...studentInfo, birthDate: e.target.value, age: age.years, ageMonths: age.months });
+                  }}
                 />
               </Field>
               <Field label="อายุ" hint="คำนวณจากวันเกิดโดยอัตโนมัติ">
-                <Input value={studentInfo.age} disabled className="bg-gray-50 text-gray-500" />
+                <div className="flex items-center gap-2">
+                  <Input value={studentInfo.age} disabled className="bg-gray-50 text-gray-500" />
+                  <span className="shrink-0 text-sm text-gray-500">ปี</span>
+                  <Input value={studentInfo.ageMonths} disabled className="bg-gray-50 text-gray-500" />
+                  <span className="shrink-0 text-sm text-gray-500">เดือน</span>
+                </div>
               </Field>
               <Field label="เบอร์โทรศัพท์">
                 <Input value={studentInfo.phone} onChange={(e) => setStudentInfo({ ...studentInfo, phone: e.target.value })} />
@@ -193,9 +206,20 @@ export default function StudentHomeVisitPage() {
                 <Input type="email" value={studentInfo.email} onChange={(e) => setStudentInfo({ ...studentInfo, email: e.target.value })} />
               </Field>
             </div>
-            <Field label="ที่อยู่">
-              <Textarea rows={2} value={studentInfo.address} onChange={(e) => setStudentInfo({ ...studentInfo, address: e.target.value })} />
-            </Field>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <Field label="เลขที่">
+                <Input value={studentInfo.houseNumber} onChange={(e) => setStudentInfo({ ...studentInfo, houseNumber: e.target.value })} />
+              </Field>
+              <Field label="หมู่">
+                <Input value={studentInfo.moo} onChange={(e) => setStudentInfo({ ...studentInfo, moo: e.target.value })} />
+              </Field>
+              <Field label="ซอย">
+                <Input value={studentInfo.soi} onChange={(e) => setStudentInfo({ ...studentInfo, soi: e.target.value })} />
+              </Field>
+              <Field label="ถนน">
+                <Input value={studentInfo.road} onChange={(e) => setStudentInfo({ ...studentInfo, road: e.target.value })} />
+              </Field>
+            </div>
             <ThaiAddressFields
               value={{
                 postalCode: studentInfo.postalCode,
@@ -236,19 +260,19 @@ export default function StudentHomeVisitPage() {
               <Field label="สถานภาพบิดา">
                 <Select value={familyInfo.fatherStatus} onChange={(e) => setFamilyInfo({ ...familyInfo, fatherStatus: e.target.value })}>
                   <option value="">เลือกสถานภาพ</option>
+                  <option value="มีชีวิตอยู่">มีชีวิตอยู่</option>
+                  <option value="เสียชีวิตแล้ว">เสียชีวิตแล้ว</option>
                   <option value="อยู่ด้วยกัน">อยู่ด้วยกัน</option>
-                  <option value="หย่าร้าง">หย่าร้าง</option>
                   <option value="แยกกันอยู่">แยกกันอยู่</option>
-                  <option value="เสียชีวิต">เสียชีวิต</option>
                 </Select>
               </Field>
               <Field label="สถานภาพมารดา">
                 <Select value={familyInfo.motherStatus} onChange={(e) => setFamilyInfo({ ...familyInfo, motherStatus: e.target.value })}>
                   <option value="">เลือกสถานภาพ</option>
+                  <option value="มีชีวิตอยู่">มีชีวิตอยู่</option>
+                  <option value="เสียชีวิตแล้ว">เสียชีวิตแล้ว</option>
                   <option value="อยู่ด้วยกัน">อยู่ด้วยกัน</option>
-                  <option value="หย่าร้าง">หย่าร้าง</option>
                   <option value="แยกกันอยู่">แยกกันอยู่</option>
-                  <option value="เสียชีวิต">เสียชีวิต</option>
                 </Select>
               </Field>
               <Field label="ลักษณะที่อยู่อาศัย">
