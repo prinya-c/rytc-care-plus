@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useAsync } from '../../hooks/useAsync';
 import { useAuth } from '../auth/AuthContext';
@@ -91,8 +92,12 @@ function TeacherCombobox({
 }
 
 export default function ScreeningSummaryPage() {
-  const [academicYear, setAcademicYear] = useState('');
-  const [semester, setSemester] = useState('');
+  // A round card's "ดูผลรวม" button navigates here with the round already
+  // picked, so the dashboard opens pre-filtered instead of showing everyone.
+  const location = useLocation();
+  const initialFilter = location.state as { academicYear?: string; semester?: string } | null;
+  const [academicYear, setAcademicYear] = useState(initialFilter?.academicYear ?? '');
+  const [semester, setSemester] = useState(initialFilter?.semester ?? '');
   const [classFilter, setClassFilter] = useState('');
   const [departmentId, setDepartmentId] = useState('');
   // Which print-only section is currently shown — only one prints at a time.
