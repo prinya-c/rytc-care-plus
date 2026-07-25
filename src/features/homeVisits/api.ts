@@ -1,5 +1,5 @@
 import { where, orderBy, getDocs, query } from 'firebase/firestore';
-import { cpCollection, createDoc, getById, listAll, patchDoc } from '../../lib/firestore';
+import { cpCollection, createDoc, getById, listAll, patchDoc, removeDoc } from '../../lib/firestore';
 import type { HomeVisit } from '../../types';
 
 export async function fetchHomeVisitById(id: string) {
@@ -30,4 +30,8 @@ export async function createHomeVisit(data: Omit<HomeVisit, 'id' | 'createdAt' |
 
 export async function updateHomeVisit(id: string, data: Partial<HomeVisit>) {
   return patchDoc('home-visits', id, data);
+}
+
+export async function deleteHomeVisit(id: string) {
+  return removeDoc('home-visits', id);
 }

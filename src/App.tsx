@@ -15,6 +15,7 @@ const MyClassesPage = lazy(() => import('./features/students/MyClassesPage'));
 const ScreeningRoundListPage = lazy(() => import('./features/screenings/ScreeningRoundListPage'));
 const BulkScreeningPage = lazy(() => import('./features/screenings/BulkScreeningPage'));
 const ScreeningSummaryPage = lazy(() => import('./features/screenings/ScreeningSummaryPage'));
+const HomeVisitListPage = lazy(() => import('./features/homeVisits/HomeVisitListPage'));
 const HomeVisitFormPage = lazy(() => import('./features/homeVisits/HomeVisitFormPage'));
 const HomeVisitSummaryPage = lazy(() => import('./features/homeVisits/HomeVisitSummaryPage'));
 const HomeroomLogListPage = lazy(() => import('./features/homeroom/HomeroomLogListPage'));
@@ -54,6 +55,7 @@ export default function App() {
                   <Route element={<ProtectedRoute allowedRoles={[...STAFF_ROLES]} />}>
                     <Route path="/students" element={<StudentListPage />} />
                     <Route path="/screenings/summary" element={<ScreeningSummaryPage />} />
+                    <Route path="/home-visits" element={<HomeVisitListPage />} />
                     <Route path="/home-visits/new/:studentId" element={<HomeVisitFormPage />} />
                     <Route path="/home-visits/:visitId/edit" element={<HomeVisitFormPage />} />
                     <Route path="/home-visits/summary" element={<HomeVisitSummaryPage />} />
