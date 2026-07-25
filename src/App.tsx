@@ -21,6 +21,8 @@ const HomeVisitListPage = lazy(() => import('./features/homeVisits/HomeVisitList
 const HomeVisitFormPage = lazy(() => import('./features/homeVisits/HomeVisitFormPage'));
 const HomeVisitSummaryPage = lazy(() => import('./features/homeVisits/HomeVisitSummaryPage'));
 const StudentHomeVisitPage = lazy(() => import('./features/homeVisits/StudentHomeVisitPage'));
+const StudentInfoListPage = lazy(() => import('./features/homeVisits/StudentInfoListPage'));
+const StudentInfoFormPage = lazy(() => import('./features/homeVisits/StudentInfoFormPage'));
 const HomeroomLogListPage = lazy(() => import('./features/homeroom/HomeroomLogListPage'));
 const HomeroomLogFormPage = lazy(() => import('./features/homeroom/HomeroomLogFormPage'));
 const HomeroomLogDetailPage = lazy(() => import('./features/homeroom/HomeroomLogDetailPage'));
@@ -63,6 +65,8 @@ export default function App() {
                       <Route element={<ProtectedRoute allowedRoles={[...STAFF_ROLES]} />}>
                         <Route path="/students" element={<StudentListPage />} />
                         <Route path="/screenings/summary" element={<ScreeningSummaryPage />} />
+                        <Route path="/student-info" element={<StudentInfoListPage />} />
+                        <Route path="/student-info/:studentId" element={<StudentInfoFormPage />} />
                         <Route path="/home-visits" element={<HomeVisitListPage />} />
                         <Route path="/home-visits/new/:studentId" element={<HomeVisitFormPage />} />
                         <Route path="/home-visits/:visitId/edit" element={<HomeVisitFormPage />} />

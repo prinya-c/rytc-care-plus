@@ -34,6 +34,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'advisor_teacher', 'advisor_staff'],
   },
   {
+    to: '/student-info',
+    label: 'ข้อมูลนักเรียน',
+    icon: 'id-card',
+    roles: ['admin', 'advisor_teacher', 'advisor_staff'],
+  },
+  {
     to: '/home-visits',
     label: 'เยี่ยมบ้าน',
     icon: 'map',
