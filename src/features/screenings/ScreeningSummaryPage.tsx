@@ -1,95 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useAsync } from '../../hooks/useAsync';
 import { useAuth } from '../auth/AuthContext';
 import { fetchAllScreenings, fetchScreeningsByTeacher, computeScreeningRounds } from './api';
-import { fetchAllTeachers } from '../students/api';
-import { SCREENING_CATEGORY_ORDER } from './checklist';
 import { Card, CardHeader, CardBody, StatCard } from '../../components/ui/Card';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
-import { Select, Button, Field, Input } from '../../components/ui/Form';
+import { Select } from '../../components/ui/Form';
 import { Badge } from '../../components/ui/Badge';
 import { canViewCollegeOverview } from '../../utils/rbac';
-import { SCREENING_CATEGORY_LABEL, type ResultGroup, type Teacher } from '../../types';
 
 const GROUP_COLORS = { trust: '#16a34a', concern: '#ca8a04', close: '#dc2626' };
-
-const THAI_MONTHS = [
-  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
-];
-
-function formatThaiDate(date: Date) {
-  return `${date.getDate()} ${THAI_MONTHS[date.getMonth()]} ${date.getFullYear() + 543}`;
-}
-
-/** Parse an `<input type="date">` value (`YYYY-MM-DD`) as a local-time Date, avoiding UTC day-shift. */
-function parseDateInputValue(value: string) {
-  const [y, m, d] = value.split('-').map(Number);
-  return new Date(y, (m || 1) - 1, d || 1);
-}
-
-function toDateInputValue(date: Date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-/** Compact single-select, type-to-filter combobox for picking a teacher's name. */
-function TeacherCombobox({
-  teachers,
-  value,
-  onChange,
-}: {
-  teachers: Teacher[];
-  value: string;
-  onChange: (name: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const q = value.trim().toLowerCase();
-  const filtered = teachers.filter((t) => !q || t.tname.toLowerCase().includes(q)).slice(0, 50);
-
-  return (
-    <div className="relative">
-      <Input
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value);
-          setOpen(true);
-        }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="พิมพ์ชื่อครูเพื่อค้นหา..."
-      />
-      {open && (
-        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-          {filtered.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-gray-400">ไม่พบชื่อครูที่ตรงกับคำค้นหา</li>
-          ) : (
-            filtered.map((t) => (
-              <li key={t.id}>
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    onChange(t.tname);
-                    setOpen(false);
-                  }}
-                  className="block w-full px-3 py-2 text-left text-sm hover:bg-brand-50"
-                >
-                  {t.tname}
-                  {t.dep_name ? ` (${t.dep_name})` : ''}
-                </button>
-              </li>
-            ))
-          )}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 export default function ScreeningSummaryPage() {
   // A round card's "ดูผลรวม" button navigates here with the round already
@@ -100,17 +21,9 @@ export default function ScreeningSummaryPage() {
   const [semester, setSemester] = useState(initialFilter?.semester ?? '');
   const [classFilter, setClassFilter] = useState('');
   const [departmentId, setDepartmentId] = useState('');
-  // Which print-only section is currently shown — only one prints at a time.
-  const [printMode, setPrintMode] = useState<'memo' | 'report' | null>(null);
-  const [showMemoModal, setShowMemoModal] = useState(false);
-  const [memoDate, setMemoDate] = useState(() => toDateInputValue(new Date()));
-  const [deptHeadName, setDeptHeadName] = useState('');
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportDeptHeadName, setReportDeptHeadName] = useState('');
 
   const { profile } = useAuth();
   const overview = canViewCollegeOverview(profile?.role);
-  const { data: teachers } = useAsync(fetchAllTeachers, []);
   // Independent of the period/class/department filters below — powers the
   // "รอบคัดกรอง" cards so every round stays visible and clickable regardless
   // of the current filter selection. Scoped to the logged-in teacher's own
@@ -119,20 +32,6 @@ export default function ScreeningSummaryPage() {
     () => (overview ? fetchAllScreenings() : fetchScreeningsByTeacher(profile?.teacherId ?? profile?.uid ?? '')),
     [overview, profile?.uid],
   );
-
-  useEffect(() => {
-    if (!printMode) return;
-    const timer = setTimeout(() => window.print(), 50);
-    return () => clearTimeout(timer);
-  }, [printMode]);
-
-  useEffect(() => {
-    function handleAfterPrint() {
-      setPrintMode(null);
-    }
-    window.addEventListener('afterprint', handleAfterPrint);
-    return () => window.removeEventListener('afterprint', handleAfterPrint);
-  }, []);
 
   const { data, loading, error, refetch } = useAsync(
     () => fetchAllScreenings({ academicYear: academicYear || undefined, semester: semester || undefined, departmentId: departmentId || undefined }),
@@ -181,35 +80,11 @@ export default function ScreeningSummaryPage() {
     };
   });
 
-  // Per-category breakdown — matches "แบบสรุปผลการคัดกรองผู้เรียน", the
-  // official print form (one row per category, count of students by group
-  // *within that category*, not the overall per-student result used above).
-  const categoryStats = SCREENING_CATEGORY_ORDER.map((key) => {
-    const counts: Record<ResultGroup, number> = { trust: 0, concern: 0, close: 0 };
-    for (const s of filtered) {
-      const g = s.categories?.[key]?.group ?? 'trust';
-      counts[g]++;
-    }
-    return { key, ...counts };
-  });
-
-  const departmentName = departmentId ? options.departments.find(([id]) => id === departmentId)?.[1] : '';
-
   return (
     <div className="space-y-5 print:space-y-3">
-      <div className="flex items-center justify-between print:hidden">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">สรุปผลการคัดกรองผู้เรียน</h1>
-          <p className="text-sm text-gray-500">ทั้งหมด {filtered.length} รายการ</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setShowMemoModal(true)}>
-            พิมพ์บันทึกข้อความ
-          </Button>
-          <Button variant="secondary" onClick={() => setShowReportModal(true)}>
-            พิมพ์รายงาน
-          </Button>
-        </div>
+      <div className="print:hidden">
+        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">สรุปผลการคัดกรองผู้เรียน</h1>
+        <p className="text-sm text-gray-500">ทั้งหมด {filtered.length} รายการ</p>
       </div>
 
       {rounds.length > 0 && (
@@ -326,196 +201,7 @@ export default function ScreeningSummaryPage() {
               </CardBody>
             </Card>
           </div>
-
-          {/* Print-only: official บันทึกข้อความ (memo) addressed to the college director. */}
-          {printMode === 'memo' && (
-            <div className="hidden print:block text-sm leading-relaxed">
-              <div className="relative flex items-center justify-center">
-                <img
-                  src={`${import.meta.env.BASE_URL}300px-Thai_government_Garuda.jpg`}
-                  alt="ครุฑ"
-                  className="absolute left-0 h-16 w-auto"
-                />
-                <h2 className="text-lg font-bold">บันทึกข้อความ</h2>
-              </div>
-
-              <div className="mt-[1cm] flex items-baseline gap-1">
-                <span className="shrink-0 font-bold">ส่วนราชการ</span>
-                <span className="flex-1 border-b border-black">วิทยาลัยเทคนิคระยอง</span>
-              </div>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="shrink-0">ที่</span>
-                <span className="flex-1 border-b border-black">{' '}</span>
-                <span className="shrink-0">วันที่</span>
-                <span className="flex-1 border-b border-black">{formatThaiDate(parseDateInputValue(memoDate))}</span>
-              </div>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="shrink-0 font-bold">เรื่อง</span>
-                <span className="flex-1 border-b border-black">
-                  การคัดกรองนักเรียนนักศึกษาจำแนกกลุ่มไว้ใจ กลุ่มห่วงใย กลุ่มใกล้ชิด ประจำปีการศึกษา {academicYear || '.....'}
-                </span>
-              </div>
-
-              <hr className="mt-[0.5cm] border-t-2 border-black" />
-
-              <p className="mt-3">
-                <span className="font-bold">เรียน</span> ผู้อำนวยการวิทยาลัยเทคนิคระยอง
-              </p>
-
-              <p className="mt-3 indent-8 text-justify">
-                ตามที่วิทยาลัยเทคนิคระยอง ได้มอบหมายให้ครูที่ปรึกษาจัดกลุ่มนักเรียนนักศึกษา กลุ่มไว้ใจ กลุ่มห่วงใย
-                กลุ่มใกล้ชิด ตามโครงการขับเคลื่อนแก้ไขปัญหาผู้เรียนอาชีวศึกษาออกนอกระบบการศึกษา (Vocational Education
-                Zero Drop Out) ปีการศึกษา {academicYear || '.....'} นั้น
-              </p>
-              <p className="mt-3 indent-8 text-justify">
-                บัดนี้ ข้าพเจ้าได้ดำเนินการสรุปผลการคัดกรองและแบ่งกลุ่มนักเรียนนักศึกษา กลุ่มไว้ใจ กลุ่มห่วงใย
-                กลุ่มใกล้ชิด ดังเอกสารแนบมาท้ายนี้
-              </p>
-
-              <div className="mt-10 flex justify-end">
-                <div className="text-center">
-                  <p>ลงชื่อ.............................................</p>
-                  <p className="mt-1">({profile?.displayName || '.............................................'})</p>
-                  <p>ครูที่ปรึกษา</p>
-                </div>
-              </div>
-
-              <div className="mt-8 flex justify-between">
-                <div className="text-center">
-                  <p>ลงชื่อ.............................................</p>
-                  <p className="mt-1">({deptHeadName || '.............................................'})</p>
-                  <p>หัวหน้าแผนกวิชา</p>
-                </div>
-                <div className="text-center">
-                  <p>ลงชื่อ.............................................</p>
-                  <p className="mt-1">(นางสาวสิริขวัญ นพสันเทียะ)</p>
-                  <p>หัวหน้างานครูที่ปรึกษา</p>
-                </div>
-              </div>
-
-              <div className="mt-8 flex justify-center">
-                <div className="text-center">
-                  <p>ลงชื่อ.............................................</p>
-                  <p className="mt-1">(นายชาคริต รุ่งรัตน์)</p>
-                  <p>รองผู้อำนวยการฝ่ายกิจการนักเรียนนักศึกษา</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Print-only: official "แบบสรุปผลการคัดกรองผู้เรียน" form layout — hidden on screen, shown only in print output. */}
-          {printMode === 'report' && (
-            <div className="hidden print:block">
-              <h2 className="text-center text-base font-bold">แบบสรุปผลการคัดกรองผู้เรียน</h2>
-              <p className="text-center text-sm">
-                ภาคเรียนที่ {semester || '.....'} ปีการศึกษา {academicYear || '.....'}
-              </p>
-              <p className="mt-3 text-center text-sm">
-                <span className="font-bold">กลุ่มเรียน</span> {classFilter || '.....................'}{' '}
-                <span className="font-bold">แผนกวิชา</span> {departmentName || '.....................'}
-              </p>
-
-              <table className="mt-3 w-full border-collapse border border-black text-sm">
-                <thead>
-                  <tr>
-                    <th className="border border-black px-2 py-1.5 text-left">รายการพิจารณา</th>
-                    <th className="border border-black px-2 py-1.5">กลุ่มใกล้ชิด (คน)</th>
-                    <th className="border border-black px-2 py-1.5">กลุ่มห่วงใย (คน)</th>
-                    <th className="border border-black px-2 py-1.5">กลุ่มไว้ใจ (คน)</th>
-                    <th className="border border-black px-2 py-1.5">หมายเหตุ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categoryStats.map((row) => (
-                    <tr key={row.key}>
-                      <td className="border border-black px-2 py-1.5">{SCREENING_CATEGORY_LABEL[row.key]}</td>
-                      <td className="border border-black px-2 py-1.5 text-center">{row.close || ''}</td>
-                      <td className="border border-black px-2 py-1.5 text-center">{row.concern || ''}</td>
-                      <td className="border border-black px-2 py-1.5 text-center">{row.trust || ''}</td>
-                      <td className="border border-black px-2 py-1.5"></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <div className="mt-10 flex justify-end">
-                <div className="text-center text-sm">
-                  <p>ลงชื่อ.............................................ครูที่ปรึกษา</p>
-                  <p className="mt-1">({profile?.displayName || '.............................................'})</p>
-                </div>
-              </div>
-              <div className="mt-8 flex justify-end">
-                <div className="text-center text-sm">
-                  <p>ลงชื่อ.............................................หัวหน้าแผนก</p>
-                  <p className="mt-1">({reportDeptHeadName || '.............................................'})</p>
-                </div>
-              </div>
-            </div>
-          )}
         </>
-      )}
-
-      {showMemoModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4 print:hidden">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
-            <h3 className="text-base font-semibold text-gray-900">ข้อมูลก่อนพิมพ์บันทึกข้อความ</h3>
-            <div className="mt-4 space-y-3">
-              <Field label="วันที่">
-                <Input type="date" value={memoDate} onChange={(e) => setMemoDate(e.target.value)} />
-              </Field>
-              <Field label="หัวหน้าแผนกวิชา">
-                <TeacherCombobox teachers={teachers ?? []} value={deptHeadName} onChange={setDeptHeadName} />
-              </Field>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                onClick={() => setShowMemoModal(false)}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-              >
-                ยกเลิก
-              </button>
-              <Button
-                disabled={!memoDate || !deptHeadName.trim()}
-                onClick={() => {
-                  setShowMemoModal(false);
-                  setPrintMode('memo');
-                }}
-              >
-                ดูตัวอย่างก่อนพิมพ์
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showReportModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4 print:hidden">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
-            <h3 className="text-base font-semibold text-gray-900">ข้อมูลก่อนพิมพ์รายงาน</h3>
-            <div className="mt-4 space-y-3">
-              <Field label="หัวหน้าแผนกวิชา">
-                <TeacherCombobox teachers={teachers ?? []} value={reportDeptHeadName} onChange={setReportDeptHeadName} />
-              </Field>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                onClick={() => setShowReportModal(false)}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-              >
-                ยกเลิก
-              </button>
-              <Button
-                disabled={!reportDeptHeadName.trim()}
-                onClick={() => {
-                  setShowReportModal(false);
-                  setPrintMode('report');
-                }}
-              >
-                ดูตัวอย่างก่อนพิมพ์
-              </Button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
