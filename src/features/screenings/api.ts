@@ -70,3 +70,25 @@ export async function fetchLatestScreeningForStudent(studentId: string) {
   const results = await fetchScreeningsByStudent(studentId);
   return results[0] ?? null;
 }
+
+export interface ScreeningRound {
+  academicYear: string;
+  semester: string;
+  trust: number;
+  concern: number;
+  close: number;
+}
+
+/** Groups screenings into one entry per (academicYear, semester) — a "รอบคัดกรอง" — newest first. */
+export function computeScreeningRounds(screenings: Screening[]): ScreeningRound[] {
+  const map = new Map<string, ScreeningRound>();
+  for (const s of screenings) {
+    const key = `${s.academicYear}|${s.semester}`;
+    const entry = map.get(key) ?? { academicYear: s.academicYear, semester: s.semester, trust: 0, concern: 0, close: 0 };
+    entry[s.resultGroup]++;
+    map.set(key, entry);
+  }
+  return Array.from(map.values()).sort(
+    (a, b) => b.academicYear.localeCompare(a.academicYear) || b.semester.localeCompare(a.semester),
+  );
+}

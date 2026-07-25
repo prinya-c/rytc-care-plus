@@ -12,6 +12,7 @@ import RegisterPage from './features/auth/RegisterPage';
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'));
 const StudentListPage = lazy(() => import('./features/students/StudentListPage'));
 const MyClassesPage = lazy(() => import('./features/students/MyClassesPage'));
+const ScreeningRoundListPage = lazy(() => import('./features/screenings/ScreeningRoundListPage'));
 const BulkScreeningPage = lazy(() => import('./features/screenings/BulkScreeningPage'));
 const ScreeningSummaryPage = lazy(() => import('./features/screenings/ScreeningSummaryPage'));
 const HomeVisitFormPage = lazy(() => import('./features/homeVisits/HomeVisitFormPage'));
@@ -46,7 +47,8 @@ export default function App() {
 
                   <Route element={<ProtectedRoute allowedRoles={['admin', 'advisor_teacher']} />}>
                     <Route path="/my-classes" element={<MyClassesPage />} />
-                    <Route path="/screenings" element={<BulkScreeningPage />} />
+                    <Route path="/screenings" element={<ScreeningRoundListPage />} />
+                    <Route path="/screenings/:academicYear/:semester" element={<BulkScreeningPage />} />
                   </Route>
 
                   <Route element={<ProtectedRoute allowedRoles={[...STAFF_ROLES]} />}>

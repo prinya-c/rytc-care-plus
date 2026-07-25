@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchAllStudents, fetchStudentsByClasses, studentDisplayName } from '../students/api';
@@ -13,7 +14,7 @@ import {
 } from './checklist';
 import { canViewCollegeOverview } from '../../utils/rbac';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
-import { Select, Input, Field } from '../../components/ui/Form';
+import { Input } from '../../components/ui/Form';
 import { GroupBadge, Badge } from '../../components/ui/Badge';
 import { useToast } from '../../components/ui/Toast';
 import {
@@ -25,8 +26,6 @@ import {
   type ScreeningCategoryKey,
 } from '../../types';
 import type { Student } from '../../types';
-
-const currentAcademicYear = String(new Date().getFullYear() + 543);
 
 type Tab = ScreeningCategoryKey | 'summary';
 
@@ -40,8 +39,7 @@ const SHORT_RESULT_LABEL: Record<ResultGroup, string> = {
 export default function BulkScreeningPage() {
   const { profile } = useAuth();
   const { showToast } = useToast();
-  const [academicYear, setAcademicYear] = useState(currentAcademicYear);
-  const [semester, setSemester] = useState('1');
+  const { academicYear = '', semester = '' } = useParams<{ academicYear: string; semester: string }>();
   const [tab, setTab] = useState<Tab>(SCREENING_CATEGORY_ORDER[0]);
 
   const scoped = !canViewCollegeOverview(profile?.role);
@@ -176,26 +174,13 @@ export default function BulkScreeningPage() {
   return (
     <div className="space-y-5 pb-10">
       <div>
-        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">คัดกรองผู้เรียน</h1>
+        <Link to="/screenings" className="text-sm font-medium text-brand-600 hover:underline">
+          ← กลับไปหน้ารายการ
+        </Link>
+        <h1 className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
+          คัดกรองผู้เรียน — ภาคเรียนที่ {semester} ปีการศึกษา {academicYear}
+        </h1>
         <p className="text-sm text-gray-500">ติ๊กข้อที่ตรงกับผู้เรียนแต่ละคน ระบบบันทึกและประมวลผลกลุ่มให้อัตโนมัติทันที</p>
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        <Field label="ปีการศึกษา">
-          <Select value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} className="w-28">
-            {[currentAcademicYear, String(Number(currentAcademicYear) - 1)].map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="ภาคเรียนที่">
-          <Select value={semester} onChange={(e) => setSemester(e.target.value)} className="w-24">
-            <option value="1">1</option>
-            <option value="2">2</option>
-          </Select>
-        </Field>
       </div>
 
       {students.length === 0 ? (

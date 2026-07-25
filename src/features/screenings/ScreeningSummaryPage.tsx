@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useAsync } from '../../hooks/useAsync';
 import { useAuth } from '../auth/AuthContext';
-import { fetchAllScreenings, fetchScreeningsByTeacher } from './api';
+import { fetchAllScreenings, fetchScreeningsByTeacher, computeScreeningRounds } from './api';
 import { fetchAllTeachers } from '../students/api';
 import { SCREENING_CATEGORY_ORDER } from './checklist';
 import { Card, CardHeader, CardBody, StatCard } from '../../components/ui/Card';
@@ -151,19 +151,7 @@ export default function ScreeningSummaryPage() {
   }, [data]);
 
   /** One card per (ปีการศึกษา, ภาคเรียน) a teacher has ever screened — a "รอบคัดกรอง". */
-  const rounds = useMemo(() => {
-    if (!allScreenings) return [];
-    const map = new Map<string, { academicYear: string; semester: string; trust: number; concern: number; close: number }>();
-    for (const s of allScreenings) {
-      const key = `${s.academicYear}|${s.semester}`;
-      const entry = map.get(key) ?? { academicYear: s.academicYear, semester: s.semester, trust: 0, concern: 0, close: 0 };
-      entry[s.resultGroup]++;
-      map.set(key, entry);
-    }
-    return Array.from(map.values()).sort(
-      (a, b) => b.academicYear.localeCompare(a.academicYear) || b.semester.localeCompare(a.semester),
-    );
-  }, [allScreenings]);
+  const rounds = useMemo(() => computeScreeningRounds(allScreenings ?? []), [allScreenings]);
 
   if (loading) return <LoadingState />;
   if (error || !data) return <ErrorState onRetry={refetch} />;
