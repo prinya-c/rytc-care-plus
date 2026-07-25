@@ -2,13 +2,10 @@ import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useAsync } from '../../hooks/useAsync';
-import { useAuth } from '../auth/AuthContext';
-import { fetchAllScreenings, fetchScreeningsByTeacher, computeScreeningRounds } from './api';
+import { fetchAllScreenings } from './api';
 import { Card, CardHeader, CardBody, StatCard } from '../../components/ui/Card';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
 import { Select } from '../../components/ui/Form';
-import { Badge } from '../../components/ui/Badge';
-import { canViewCollegeOverview } from '../../utils/rbac';
 
 const GROUP_COLORS = { trust: '#16a34a', concern: '#ca8a04', close: '#dc2626' };
 
@@ -21,17 +18,6 @@ export default function ScreeningSummaryPage() {
   const [semester, setSemester] = useState(initialFilter?.semester ?? '');
   const [classFilter, setClassFilter] = useState('');
   const [departmentId, setDepartmentId] = useState('');
-
-  const { profile } = useAuth();
-  const overview = canViewCollegeOverview(profile?.role);
-  // Independent of the period/class/department filters below — powers the
-  // "รอบคัดกรอง" cards so every round stays visible and clickable regardless
-  // of the current filter selection. Scoped to the logged-in teacher's own
-  // screenings unless their role can see the whole college.
-  const { data: allScreenings } = useAsync(
-    () => (overview ? fetchAllScreenings() : fetchScreeningsByTeacher(profile?.teacherId ?? profile?.uid ?? '')),
-    [overview, profile?.uid],
-  );
 
   const { data, loading, error, refetch } = useAsync(
     () => fetchAllScreenings({ academicYear: academicYear || undefined, semester: semester || undefined, departmentId: departmentId || undefined }),
@@ -53,9 +39,6 @@ export default function ScreeningSummaryPage() {
       ),
     };
   }, [data]);
-
-  /** One card per (ปีการศึกษา, ภาคเรียน) a teacher has ever screened — a "รอบคัดกรอง". */
-  const rounds = useMemo(() => computeScreeningRounds(allScreenings ?? []), [allScreenings]);
 
   if (loading) return <LoadingState />;
   if (error || !data) return <ErrorState onRetry={refetch} />;
@@ -86,43 +69,6 @@ export default function ScreeningSummaryPage() {
         <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">สรุปผลการคัดกรองผู้เรียน</h1>
         <p className="text-sm text-gray-500">ทั้งหมด {filtered.length} รายการ</p>
       </div>
-
-      {rounds.length > 0 && (
-        <div className="print:hidden">
-          <p className="mb-2 text-sm font-semibold text-gray-700">รอบคัดกรอง — แตะเพื่อกรองตามรอบ</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {rounds.map((r) => {
-              const total = r.trust + r.concern + r.close;
-              const active = academicYear === r.academicYear && semester === r.semester;
-              return (
-                <button
-                  key={`${r.academicYear}|${r.semester}`}
-                  type="button"
-                  onClick={() => {
-                    setAcademicYear(r.academicYear);
-                    setSemester(r.semester);
-                  }}
-                  className={`rounded-2xl border bg-white p-4 text-left shadow-sm transition-colors ${
-                    active ? 'border-brand-500 ring-2 ring-brand-500/20' : 'border-gray-200 hover:border-brand-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-bold text-gray-900">
-                      ภาคเรียนที่ {r.semester} ปีการศึกษา {r.academicYear}
-                    </p>
-                    <span className="text-xs text-gray-400">{total} คน</span>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <Badge tone="green">ไว้ใจ {r.trust}</Badge>
-                    <Badge tone="yellow">ห่วงใย {r.concern}</Badge>
-                    <Badge tone="red">ใกล้ชิด {r.close}</Badge>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 print:hidden">
         <Select value={academicYear} onChange={(e) => setAcademicYear(e.target.value)}>
