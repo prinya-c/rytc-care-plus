@@ -15,11 +15,16 @@ import { useToast } from '../../components/ui/Toast';
 export const emptyStudentInfo: StudentInfo = {
   citizenId: '',
   nickname: '',
+  enrollmentYear: '',
   birthDate: '',
   age: '',
+  ageMonths: '',
   phone: '',
   email: '',
-  address: '',
+  houseNumber: '',
+  moo: '',
+  soi: '',
+  road: '',
   province: '',
   district: '',
   subdistrict: '',
@@ -100,10 +105,12 @@ export default function HomeVisitFormPage() {
     if (data?.mode === 'edit' && data.existing) {
       const v = data.existing;
       setVisitDate(v.visitDate);
+      const age = calculateAge(v.studentInfo.birthDate);
       setStudentInfo({
         ...v.studentInfo,
         // Recompute rather than trust a possibly-stale stored value — age is derived, not editable.
-        age: calculateAge(v.studentInfo.birthDate),
+        age: age.years,
+        ageMonths: age.months,
         // Backfill from the roster for records saved before citizenId was auto-filled.
         citizenId: v.studentInfo.citizenId || data.student?.sidcard || '',
       });
@@ -218,15 +225,26 @@ export default function HomeVisitFormPage() {
             <Field label="ชื่อเล่น">
               <Input value={studentInfo.nickname} onChange={(e) => setStudentInfo({ ...studentInfo, nickname: e.target.value })} />
             </Field>
+            <Field label="ปีการศึกษาที่เข้าเรียน">
+              <Input value={studentInfo.enrollmentYear} onChange={(e) => setStudentInfo({ ...studentInfo, enrollmentYear: e.target.value })} placeholder="เช่น 2567" />
+            </Field>
             <Field label="วันเกิด">
               <Input
                 type="date"
                 value={studentInfo.birthDate}
-                onChange={(e) => setStudentInfo({ ...studentInfo, birthDate: e.target.value, age: calculateAge(e.target.value) })}
+                onChange={(e) => {
+                  const age = calculateAge(e.target.value);
+                  setStudentInfo({ ...studentInfo, birthDate: e.target.value, age: age.years, ageMonths: age.months });
+                }}
               />
             </Field>
             <Field label="อายุ" hint="คำนวณจากวันเกิดโดยอัตโนมัติ">
-              <Input value={studentInfo.age} disabled className="bg-gray-50 text-gray-500" />
+              <div className="flex items-center gap-2">
+                <Input value={studentInfo.age} disabled className="bg-gray-50 text-gray-500" />
+                <span className="shrink-0 text-sm text-gray-500">ปี</span>
+                <Input value={studentInfo.ageMonths} disabled className="bg-gray-50 text-gray-500" />
+                <span className="shrink-0 text-sm text-gray-500">เดือน</span>
+              </div>
             </Field>
             <Field label="เบอร์โทรศัพท์">
               <Input value={studentInfo.phone} onChange={(e) => setStudentInfo({ ...studentInfo, phone: e.target.value })} />
@@ -235,9 +253,20 @@ export default function HomeVisitFormPage() {
               <Input type="email" value={studentInfo.email} onChange={(e) => setStudentInfo({ ...studentInfo, email: e.target.value })} />
             </Field>
           </div>
-          <Field label="ที่อยู่">
-            <Textarea rows={2} value={studentInfo.address} onChange={(e) => setStudentInfo({ ...studentInfo, address: e.target.value })} />
-          </Field>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Field label="เลขที่">
+              <Input value={studentInfo.houseNumber} onChange={(e) => setStudentInfo({ ...studentInfo, houseNumber: e.target.value })} />
+            </Field>
+            <Field label="หมู่">
+              <Input value={studentInfo.moo} onChange={(e) => setStudentInfo({ ...studentInfo, moo: e.target.value })} />
+            </Field>
+            <Field label="ซอย">
+              <Input value={studentInfo.soi} onChange={(e) => setStudentInfo({ ...studentInfo, soi: e.target.value })} />
+            </Field>
+            <Field label="ถนน">
+              <Input value={studentInfo.road} onChange={(e) => setStudentInfo({ ...studentInfo, road: e.target.value })} />
+            </Field>
+          </div>
           <ThaiAddressFields
             value={{
               postalCode: studentInfo.postalCode,
@@ -278,19 +307,19 @@ export default function HomeVisitFormPage() {
             <Field label="สถานภาพบิดา">
               <Select value={familyInfo.fatherStatus} onChange={(e) => setFamilyInfo({ ...familyInfo, fatherStatus: e.target.value })}>
                 <option value="">เลือกสถานภาพ</option>
+                <option value="มีชีวิตอยู่">มีชีวิตอยู่</option>
+                <option value="เสียชีวิตแล้ว">เสียชีวิตแล้ว</option>
                 <option value="อยู่ด้วยกัน">อยู่ด้วยกัน</option>
-                <option value="หย่าร้าง">หย่าร้าง</option>
                 <option value="แยกกันอยู่">แยกกันอยู่</option>
-                <option value="เสียชีวิต">เสียชีวิต</option>
               </Select>
             </Field>
             <Field label="สถานภาพมารดา">
               <Select value={familyInfo.motherStatus} onChange={(e) => setFamilyInfo({ ...familyInfo, motherStatus: e.target.value })}>
                 <option value="">เลือกสถานภาพ</option>
+                <option value="มีชีวิตอยู่">มีชีวิตอยู่</option>
+                <option value="เสียชีวิตแล้ว">เสียชีวิตแล้ว</option>
                 <option value="อยู่ด้วยกัน">อยู่ด้วยกัน</option>
-                <option value="หย่าร้าง">หย่าร้าง</option>
                 <option value="แยกกันอยู่">แยกกันอยู่</option>
-                <option value="เสียชีวิต">เสียชีวิต</option>
               </Select>
             </Field>
             <Field label="ลักษณะที่อยู่อาศัย">
@@ -345,27 +374,63 @@ export default function HomeVisitFormPage() {
               <Input value={behaviorInfo.closeFriendPhone} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, closeFriendPhone: e.target.value })} />
             </Field>
             <Field label="พฤติกรรมเครื่องดื่มแอลกอฮอล์/สารเสพติด">
-              <Input value={behaviorInfo.alcoholOrDrugUse} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, alcoholOrDrugUse: e.target.value })} />
+              <Select value={behaviorInfo.alcoholOrDrugUse} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, alcoholOrDrugUse: e.target.value })}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="ดื่มบ่อยๆ">ดื่มบ่อยๆ</option>
+                <option value="ดื่มแต่ไม่บ่อย">ดื่มแต่ไม่บ่อย</option>
+                <option value="เคยดื่ม">เคยดื่ม</option>
+                <option value="ไม่เคยดื่ม">ไม่เคยดื่ม</option>
+              </Select>
             </Field>
             <Field label="การออกเที่ยวกลางคืน">
-              <Input value={behaviorInfo.nightOut} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, nightOut: e.target.value })} />
+              <Select value={behaviorInfo.nightOut} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, nightOut: e.target.value })}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="บ่อยๆ">บ่อยๆ</option>
+                <option value="ออกแต่ไม่บ่อย">ออกแต่ไม่บ่อย</option>
+                <option value="นานๆครั้ง">นานๆครั้ง</option>
+                <option value="ไม่มี">ไม่มี</option>
+              </Select>
             </Field>
             <Field label="เพื่อนต่างเพศ">
-              <Input value={behaviorInfo.oppositeSexFriend} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, oppositeSexFriend: e.target.value })} />
+              <Select value={behaviorInfo.oppositeSexFriend} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, oppositeSexFriend: e.target.value })}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="บ่อยๆ">บ่อยๆ</option>
+                <option value="ไม่บ่อย">ไม่บ่อย</option>
+                <option value="นานๆครั้ง">นานๆครั้ง</option>
+                <option value="ไม่มี">ไม่มี</option>
+              </Select>
             </Field>
             <Field label="การสูบบุหรี่">
-              <Input value={behaviorInfo.smoking} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, smoking: e.target.value })} />
+              <Select value={behaviorInfo.smoking} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, smoking: e.target.value })}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="สูบบ่อยๆ">สูบบ่อยๆ</option>
+                <option value="สูบไม่บ่อย">สูบไม่บ่อย</option>
+                <option value="นานๆครั้ง">นานๆครั้ง</option>
+                <option value="ไม่สูบ">ไม่สูบ</option>
+              </Select>
             </Field>
             <Field label="การพนัน">
-              <Input value={behaviorInfo.gambling} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, gambling: e.target.value })} />
+              <Select value={behaviorInfo.gambling} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, gambling: e.target.value })}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="เล่นบ่อยๆ">เล่นบ่อยๆ</option>
+                <option value="เล่นแต่ไม่บ่อย">เล่นแต่ไม่บ่อย</option>
+                <option value="นานๆครั้ง">นานๆครั้ง</option>
+                <option value="ไม่เล่น">ไม่เล่น</option>
+              </Select>
             </Field>
             <Field label="ภารกิจที่ได้รับมอบหมายจากครอบครัว">
               <Input value={behaviorInfo.familyResponsibility} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, familyResponsibility: e.target.value })} />
             </Field>
+            <Field label="ความสัมพันธ์กับสมาชิกในครอบครัว">
+              <Select value={behaviorInfo.familyRelationship} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, familyRelationship: e.target.value })}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="ดีมาก">ดีมาก</option>
+                <option value="ดี">ดี</option>
+                <option value="ปานกลาง">ปานกลาง</option>
+                <option value="น้อย">น้อย</option>
+              </Select>
+            </Field>
           </div>
-          <Field label="ความสัมพันธ์กับสมาชิกในครอบครัว">
-            <Textarea rows={2} value={behaviorInfo.familyRelationship} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, familyRelationship: e.target.value })} />
-          </Field>
         </Section>
 
         <Section title="ความคิดเห็น">

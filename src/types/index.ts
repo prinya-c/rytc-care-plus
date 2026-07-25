@@ -116,11 +116,18 @@ export interface Screening {
 export interface StudentInfo {
   citizenId: string;
   nickname: string;
+  /** ปีการศึกษาที่เข้าเรียน — not tracked in the legacy roster, so it's always manually entered here. */
+  enrollmentYear: string;
   birthDate: string;
+  /** Derived from birthDate — see utils/age.ts. Not user-editable. */
   age: string;
+  ageMonths: string;
   phone: string;
   email: string;
-  address: string;
+  houseNumber: string;
+  moo: string;
+  soi: string;
+  road: string;
   province: string;
   district: string;
   subdistrict: string;

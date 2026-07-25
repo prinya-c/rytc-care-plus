@@ -1,14 +1,20 @@
-/** Age in whole years as of today, from an ISO (yyyy-mm-dd) birth date. Empty string if unset/invalid. */
-export function calculateAge(birthDateIso: string): string {
-  if (!birthDateIso) return '';
+export interface Age {
+  years: string;
+  months: string;
+}
+
+const emptyAge: Age = { years: '', months: '' };
+
+/** Age as of today, in whole years + remaining months, from an ISO (yyyy-mm-dd) birth date. */
+export function calculateAge(birthDateIso: string): Age {
+  if (!birthDateIso) return emptyAge;
   const birth = new Date(birthDateIso);
-  if (Number.isNaN(birth.getTime())) return '';
+  if (Number.isNaN(birth.getTime())) return emptyAge;
 
   const now = new Date();
-  let age = now.getFullYear() - birth.getFullYear();
-  const hadBirthdayThisYear =
-    now.getMonth() > birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() >= birth.getDate());
-  if (!hadBirthdayThisYear) age -= 1;
+  let totalMonths = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+  if (now.getDate() < birth.getDate()) totalMonths -= 1;
+  if (totalMonths < 0) return emptyAge;
 
-  return age >= 0 ? String(age) : '';
+  return { years: String(Math.floor(totalMonths / 12)), months: String(totalMonths % 12) };
 }
