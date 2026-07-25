@@ -71,7 +71,7 @@ export const emptyBehaviorInfo: BehaviorInfo = {
 /**
  * The teacher's part of a home visit: when it happened, photos/map, and
  * opinions. Personal/family/behavior info lives in the same HomeVisit
- * document but is edited from the ข้อมูลนักเรียน page (StudentInfoFormPage)
+ * document but is edited from the ข้อมูลผู้เรียน page (StudentInfoFormPage)
  * instead — this form never touches those fields, so it never overwrites
  * them either (Firestore's updateDoc only writes the keys it's given).
  */
@@ -236,7 +236,7 @@ export default function HomeVisitFormPage() {
               to={`/student-info/${infoStudentId}`}
               className="rounded-lg px-3 py-2 text-sm font-semibold text-brand-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
             >
-              ข้อมูลนักเรียน
+              ข้อมูลผู้เรียน
             </Link>
           )}
         </div>

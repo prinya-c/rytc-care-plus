@@ -22,21 +22,21 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'advisor_teacher', 'advisor_staff'],
   },
   {
+    to: '/student-info',
+    label: 'ข้อมูลผู้เรียน',
+    icon: 'id-card',
+    roles: ['admin', 'advisor_teacher', 'advisor_staff'],
+  },
+  {
     to: '/screenings',
     label: 'คัดกรองผู้เรียน',
     icon: 'clipboard',
     roles: ['admin', 'advisor_teacher'],
   },
   {
-    to: '/screenings/summary',
-    label: 'สรุปคัดกรอง',
-    icon: 'chart',
-    roles: ['admin', 'advisor_teacher', 'advisor_staff'],
-  },
-  {
-    to: '/student-info',
-    label: 'ข้อมูลนักเรียน',
-    icon: 'id-card',
+    to: '/homeroom',
+    label: 'กิจกรรมโฮมรูม',
+    icon: 'document',
     roles: ['admin', 'advisor_teacher', 'advisor_staff'],
   },
   {
@@ -46,21 +46,21 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'advisor_teacher', 'advisor_staff'],
   },
   {
-    to: '/home-visits/summary',
-    label: 'สรุปเยี่ยมบ้าน',
+    to: '/referrals',
+    label: 'ส่งต่อผู้เรียน',
+    icon: 'send',
+    roles: ['admin', 'advisor_teacher', 'advisor_staff'],
+  },
+  {
+    to: '/screenings/summary',
+    label: 'สรุปคัดกรองผู้เรียน',
     icon: 'chart',
     roles: ['admin', 'advisor_teacher', 'advisor_staff'],
   },
   {
-    to: '/homeroom',
-    label: 'กิจกรรมโฮมรูม',
-    icon: 'document',
-    roles: ['admin', 'advisor_teacher', 'advisor_staff'],
-  },
-  {
-    to: '/referrals',
-    label: 'ส่งต่อผู้เรียน',
-    icon: 'send',
+    to: '/home-visits/summary',
+    label: 'สรุปเยี่ยมบ้าน',
+    icon: 'chart',
     roles: ['admin', 'advisor_teacher', 'advisor_staff'],
   },
   {
