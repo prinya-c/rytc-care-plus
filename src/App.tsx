@@ -18,6 +18,7 @@ const ScreeningSummaryPage = lazy(() => import('./features/screenings/ScreeningS
 const HomeVisitListPage = lazy(() => import('./features/homeVisits/HomeVisitListPage'));
 const HomeVisitFormPage = lazy(() => import('./features/homeVisits/HomeVisitFormPage'));
 const HomeVisitSummaryPage = lazy(() => import('./features/homeVisits/HomeVisitSummaryPage'));
+const HomeVisitSelfReportPage = lazy(() => import('./features/homeVisits/HomeVisitSelfReportPage'));
 const HomeroomLogListPage = lazy(() => import('./features/homeroom/HomeroomLogListPage'));
 const HomeroomLogFormPage = lazy(() => import('./features/homeroom/HomeroomLogFormPage'));
 const HomeroomLogDetailPage = lazy(() => import('./features/homeroom/HomeroomLogDetailPage'));
@@ -41,6 +42,8 @@ export default function App() {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              {/* Public, unauthenticated — reached only via a per-visit secret-token QR/link shared by the advisor teacher. */}
+              <Route path="/home-visits/self-report/:visitId/:token" element={<HomeVisitSelfReportPage />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route element={<AppLayout />}>

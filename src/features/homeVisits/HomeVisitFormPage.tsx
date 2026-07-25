@@ -10,7 +10,7 @@ import { LoadingState, ErrorState, Spinner } from '../../components/ui/States';
 import { Section, Field, Input, Textarea, Select, Button } from '../../components/ui/Form';
 import { useToast } from '../../components/ui/Toast';
 
-const emptyStudentInfo: StudentInfo = {
+export const emptyStudentInfo: StudentInfo = {
   citizenId: '',
   nickname: '',
   birthDate: '',
@@ -24,7 +24,7 @@ const emptyStudentInfo: StudentInfo = {
   postalCode: '',
 };
 
-const emptyFamilyInfo: FamilyInfo = {
+export const emptyFamilyInfo: FamilyInfo = {
   fatherName: '',
   fatherOccupation: '',
   fatherPhone: '',
@@ -48,7 +48,7 @@ const emptyFamilyInfo: FamilyInfo = {
   houseType: '',
 };
 
-const emptyBehaviorInfo: BehaviorInfo = {
+export const emptyBehaviorInfo: BehaviorInfo = {
   chronicDisease: '',
   chronicDiseaseDetail: '',
   closeFriendName: '',
