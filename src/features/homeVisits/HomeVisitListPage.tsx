@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchHomeVisitsByTeacher, fetchAllHomeVisits, deleteHomeVisit } from './api';
@@ -7,12 +7,10 @@ import { fetchAllStudents, fetchStudentsByClasses, studentDisplayName } from '..
 import { deleteImageByUrl } from '../../lib/storage';
 import { canViewCollegeOverview } from '../../utils/rbac';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
-import { Button, Input } from '../../components/ui/Form';
-import { Badge } from '../../components/ui/Badge';
 import { Icon } from '../../components/ui/Icon';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
-import type { HomeVisit, Student } from '../../types';
+import type { HomeVisit } from '../../types';
 
 export default function HomeVisitListPage() {
   const { profile } = useAuth();
@@ -21,9 +19,6 @@ export default function HomeVisitListPage() {
   const { showToast } = useToast();
   const overview = canViewCollegeOverview(profile?.role);
   const teacherId = profile?.teacherId ?? profile?.uid ?? '';
-
-  const [showNewModal, setShowNewModal] = useState(false);
-  const [studentSearch, setStudentSearch] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data, loading, error, refetch } = useAsync(async () => {
@@ -31,7 +26,9 @@ export default function HomeVisitListPage() {
       overview ? fetchAllHomeVisits() : fetchHomeVisitsByTeacher(teacherId),
       overview ? fetchAllStudents() : fetchStudentsByClasses(profile?.classIds ?? []),
     ]);
-    return { visits, students };
+    const visitByStudent = new Map<string, HomeVisit>();
+    for (const v of visits) if (!visitByStudent.has(v.studentId)) visitByStudent.set(v.studentId, v);
+    return { students, visitByStudent };
   }, [overview, teacherId, JSON.stringify(profile?.classIds)]);
 
   async function handleDelete(visit: HomeVisit) {
@@ -59,115 +56,60 @@ export default function HomeVisitListPage() {
   if (loading) return <LoadingState />;
   if (error || !data) return <ErrorState onRetry={refetch} />;
 
-  const q = studentSearch.trim().toLowerCase();
-  const matchingStudents: Student[] = q
-    ? data.students.filter((s) => studentDisplayName(s).toLowerCase().includes(q)).slice(0, 30)
-    : [];
-
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">เยี่ยมบ้าน</h1>
-          <p className="text-sm text-gray-500">ทั้งหมด {data.visits.length} รายการ</p>
-        </div>
-        <Button variant="primary" onClick={() => setShowNewModal(true)}>
-          + บันทึกใหม่
-        </Button>
+      <div>
+        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">เยี่ยมบ้าน</h1>
+        <p className="text-sm text-gray-500">ทั้งหมด {data.students.length} คน</p>
       </div>
 
-      {data.visits.length === 0 ? (
-        <EmptyState title="ยังไม่มีบันทึกการเยี่ยมบ้าน" description="เริ่มบันทึกการเยี่ยมบ้านผู้เรียนครั้งแรกของคุณ" />
+      {data.students.length === 0 ? (
+        <EmptyState
+          title="ไม่พบผู้เรียนในกลุ่มเรียนที่รับผิดชอบ"
+          description='ตรวจสอบกลุ่มเรียนได้ที่เมนู "กลุ่มเรียนของฉัน"'
+        />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {data.visits.map((visit) => (
-            <div key={visit.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-                  <Icon name="map" className="h-4 w-4" />
-                </div>
-                <div className="flex gap-1.5">
-                  <Link
-                    to={`/home-visits/${visit.id}/edit`}
-                    title="แก้ไข"
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200"
-                  >
-                    <Icon name="pencil" className="h-4 w-4" />
-                  </Link>
+          {data.students.map((s) => {
+            const visit = data.visitByStudent.get(s.sid);
+            const visited = !!visit;
+            return (
+              <div
+                key={s.sid}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(visited ? `/home-visits/${visit.id}/edit` : `/home-visits/new/${s.sid}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') navigate(visited ? `/home-visits/${visit!.id}/edit` : `/home-visits/new/${s.sid}`);
+                }}
+                className={`relative cursor-pointer rounded-2xl border p-4 shadow-sm transition-colors ${
+                  visited
+                    ? 'border-trust-100 bg-trust-50 hover:border-trust-600/40'
+                    : 'border-close-100 bg-close-50 hover:border-close-600/40'
+                }`}
+              >
+                {visited && (
                   <button
                     type="button"
                     title="ลบ"
                     disabled={deletingId === visit.id}
-                    onClick={() => handleDelete(visit)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-close-100 text-close-700 hover:bg-close-200 disabled:opacity-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(visit);
+                    }}
+                    className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-white text-close-700 shadow-sm hover:bg-close-100 disabled:opacity-50"
                   >
                     <Icon name="trash" className="h-4 w-4" />
                   </button>
-                </div>
-              </div>
-
-              <p className="mt-3 text-sm font-bold leading-snug text-gray-900">{visit.studentName}</p>
-
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <Badge tone="blue">{visit.className || 'ไม่ระบุกลุ่มเรียน'}</Badge>
-                <Badge tone={visit.status === 'submitted' ? 'green' : 'gray'}>
-                  {visit.status === 'submitted' ? 'ส่งข้อมูลแล้ว' : 'แบบร่าง'}
-                </Badge>
-              </div>
-
-              <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-2 text-xs text-gray-500">
-                <span className="flex items-center gap-1">
-                  <Icon name="calendar" className="h-3.5 w-3.5" />
-                  {visit.visitDate}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {showNewModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
-            <h3 className="text-base font-semibold text-gray-900">บันทึกการเยี่ยมบ้านใหม่</h3>
-            <p className="mt-1 text-xs text-gray-500">ค้นหาชื่อผู้เรียนที่จะบันทึกการเยี่ยมบ้าน</p>
-            <div className="mt-3">
-              <Input
-                autoFocus
-                value={studentSearch}
-                onChange={(e) => setStudentSearch(e.target.value)}
-                placeholder="พิมพ์ชื่อผู้เรียน..."
-              />
-              <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-gray-200">
-                {q && matchingStudents.length === 0 ? (
-                  <p className="px-3 py-2 text-sm text-gray-400">ไม่พบผู้เรียนที่ตรงกับคำค้นหา</p>
-                ) : (
-                  matchingStudents.map((s) => (
-                    <button
-                      key={s.sid}
-                      type="button"
-                      onClick={() => navigate(`/home-visits/new/${s.sid}`)}
-                      className="block w-full border-b border-gray-100 px-3 py-2 text-left text-sm last:border-0 hover:bg-brand-50"
-                    >
-                      <p className="font-medium text-gray-900">{studentDisplayName(s)}</p>
-                      <p className="text-xs text-gray-500">{s.class_name}</p>
-                    </button>
-                  ))
                 )}
+                <p className="pr-8 text-sm font-bold leading-snug text-gray-900">{studentDisplayName(s)}</p>
+                <p className="mt-1 text-xs text-gray-500">{s.class_name}</p>
+                <p className={`mt-3 text-sm font-semibold ${visited ? 'text-trust-700' : 'text-close-700'}`}>
+                  {visited ? `เยี่ยมบ้านแล้ว · ${visit.visitDate}` : 'ยังไม่ได้เยี่ยมบ้าน'}
+                </p>
               </div>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => {
-                  setShowNewModal(false);
-                  setStudentSearch('');
-                }}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-              >
-                ยกเลิก
-              </button>
-            </div>
-          </div>
+            );
+          })}
         </div>
       )}
     </div>
