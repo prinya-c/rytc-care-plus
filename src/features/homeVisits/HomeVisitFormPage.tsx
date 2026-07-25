@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
-import { fetchStudentByStudentId, studentDisplayName } from '../students/api';
+import { fetchStudentByStudentId, studentDisplayName, studentSubtitle } from '../students/api';
 import { fetchHomeVisitById, createHomeVisit, updateHomeVisit } from './api';
 import { uploadHomeVisitImage } from '../../lib/storage';
+import { calculateAge } from '../../utils/age';
+import { ThaiAddressFields } from './ThaiAddressFields';
 import type { BehaviorInfo, FamilyInfo, StudentInfo } from '../../types';
 import { LoadingState, ErrorState, Spinner } from '../../components/ui/States';
 import { Section, Field, Input, Textarea, Select, Button } from '../../components/ui/Form';
@@ -85,7 +87,10 @@ export default function HomeVisitFormPage() {
   const { data, loading, error } = useAsync(async () => {
     if (isEdit) {
       const existing = await fetchHomeVisitById(visitId!);
-      return { mode: 'edit' as const, existing };
+      // Also fetch the live roster record so the header can show the
+      // student's current แผนกวิชา/short_name — HomeVisit docs don't store those.
+      const student = existing ? await fetchStudentByStudentId(existing.studentId) : null;
+      return { mode: 'edit' as const, existing, student };
     }
     const student = await fetchStudentByStudentId(studentId!);
     return { mode: 'new' as const, student };
@@ -95,7 +100,8 @@ export default function HomeVisitFormPage() {
     if (data?.mode === 'edit' && data.existing) {
       const v = data.existing;
       setVisitDate(v.visitDate);
-      setStudentInfo(v.studentInfo);
+      // Recompute rather than trust a possibly-stale stored value — age is derived, not editable.
+      setStudentInfo({ ...v.studentInfo, age: calculateAge(v.studentInfo.birthDate) });
       setFamilyInfo(v.familyInfo);
       setBehaviorInfo(v.behaviorInfo);
       setParentOpinion(v.parentOpinion);
@@ -109,9 +115,10 @@ export default function HomeVisitFormPage() {
   if (error || !data) return <ErrorState />;
   if (data.mode === 'new' && !data.student) return <ErrorState title="ไม่พบข้อมูลผู้เรียน" description="" />;
 
-  const student = data.mode === 'new' ? data.student! : null;
+  const student = data.student;
   const existing = data.mode === 'edit' ? data.existing : null;
   const displayName = existing?.studentName ?? (student ? studentDisplayName(student) : '');
+  const subtitle = studentSubtitle(student);
 
   async function handlePhotoUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -183,8 +190,9 @@ export default function HomeVisitFormPage() {
   return (
     <div className="space-y-5 pb-24">
       <div>
-        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">แบบบันทึกการเยี่ยมบ้านผู้เรียน</h1>
-        <p className="text-sm text-gray-500">{displayName}</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">แบบบันทึกการเยี่ยมบ้านผู้เรียน</p>
+        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">{displayName}</h1>
+        {subtitle && <p className="mt-0.5 text-sm text-gray-500">{subtitle}</p>}
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white px-4 sm:px-5">
@@ -203,10 +211,14 @@ export default function HomeVisitFormPage() {
               <Input value={studentInfo.nickname} onChange={(e) => setStudentInfo({ ...studentInfo, nickname: e.target.value })} />
             </Field>
             <Field label="วันเกิด">
-              <Input type="date" value={studentInfo.birthDate} onChange={(e) => setStudentInfo({ ...studentInfo, birthDate: e.target.value })} />
+              <Input
+                type="date"
+                value={studentInfo.birthDate}
+                onChange={(e) => setStudentInfo({ ...studentInfo, birthDate: e.target.value, age: calculateAge(e.target.value) })}
+              />
             </Field>
-            <Field label="อายุ">
-              <Input value={studentInfo.age} onChange={(e) => setStudentInfo({ ...studentInfo, age: e.target.value })} />
+            <Field label="อายุ" hint="คำนวณจากวันเกิดโดยอัตโนมัติ">
+              <Input value={studentInfo.age} disabled className="bg-gray-50 text-gray-500" />
             </Field>
             <Field label="เบอร์โทรศัพท์">
               <Input value={studentInfo.phone} onChange={(e) => setStudentInfo({ ...studentInfo, phone: e.target.value })} />
@@ -218,20 +230,15 @@ export default function HomeVisitFormPage() {
           <Field label="ที่อยู่">
             <Textarea rows={2} value={studentInfo.address} onChange={(e) => setStudentInfo({ ...studentInfo, address: e.target.value })} />
           </Field>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Field label="จังหวัด">
-              <Input value={studentInfo.province} onChange={(e) => setStudentInfo({ ...studentInfo, province: e.target.value })} />
-            </Field>
-            <Field label="อำเภอ">
-              <Input value={studentInfo.district} onChange={(e) => setStudentInfo({ ...studentInfo, district: e.target.value })} />
-            </Field>
-            <Field label="ตำบล">
-              <Input value={studentInfo.subdistrict} onChange={(e) => setStudentInfo({ ...studentInfo, subdistrict: e.target.value })} />
-            </Field>
-            <Field label="รหัสไปรษณีย์">
-              <Input value={studentInfo.postalCode} onChange={(e) => setStudentInfo({ ...studentInfo, postalCode: e.target.value })} />
-            </Field>
-          </div>
+          <ThaiAddressFields
+            value={{
+              postalCode: studentInfo.postalCode,
+              province: studentInfo.province,
+              district: studentInfo.district,
+              subdistrict: studentInfo.subdistrict,
+            }}
+            onChange={(next) => setStudentInfo({ ...studentInfo, ...next })}
+          />
         </Section>
 
         <Section title="ข้อมูลครอบครัว">
