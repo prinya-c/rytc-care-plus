@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchHomeVisitsByTeacher, fetchAllHomeVisits, deleteHomeVisit } from './api';
@@ -86,37 +86,43 @@ export default function HomeVisitListPage() {
             return (
               <div
                 key={s.sid}
-                className={`relative rounded-2xl border p-4 shadow-sm transition-colors ${
+                className={`rounded-2xl border p-4 shadow-sm transition-colors ${
                   visited ? 'border-trust-100 bg-trust-50' : 'border-close-100 bg-close-50'
                 }`}
               >
-                {visited && (
-                  <button
-                    type="button"
-                    title="ลบ"
-                    disabled={deletingId === visit.id}
-                    onClick={() => handleDelete(visit)}
-                    className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-white text-close-700 shadow-sm hover:bg-close-100 disabled:opacity-50"
+                <div className="flex items-center justify-end gap-1.5">
+                  <Link
+                    to={`/student-info/${s.sid}`}
+                    title="ดูข้อมูลผู้เรียน"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-trust-100 text-trust-700 hover:bg-trust-200"
                   >
-                    <Icon name="trash" className="h-4 w-4" />
-                  </button>
-                )}
-
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => navigate(visit ? `/home-visits/${visit.id}/edit` : `/home-visits/new/${s.sid}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') navigate(visit ? `/home-visits/${visit.id}/edit` : `/home-visits/new/${s.sid}`);
-                  }}
-                  className="cursor-pointer"
-                >
-                  <p className="pr-8 text-sm font-bold leading-snug text-gray-900">{studentDisplayName(s)}</p>
-                  <p className="mt-1 text-xs text-gray-500">{s.class_name}</p>
-                  <p className={`mt-2 text-sm font-semibold ${visited ? 'text-trust-700' : 'text-close-700'}`}>
-                    {visited ? `เยี่ยมบ้านแล้ว · ${visit!.visitDate || 'ยังไม่ระบุวันที่'}` : 'ยังไม่ได้เยี่ยมบ้าน'}
-                  </p>
+                    <Icon name="eye" className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    to={visit ? `/home-visits/${visit.id}/edit` : `/home-visits/new/${s.sid}`}
+                    title="แก้ไขเยี่ยมบ้าน"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  >
+                    <Icon name="pencil" className="h-4 w-4" />
+                  </Link>
+                  {visited && (
+                    <button
+                      type="button"
+                      title="ลบ"
+                      disabled={deletingId === visit.id}
+                      onClick={() => handleDelete(visit)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-close-100 text-close-700 hover:bg-close-200 disabled:opacity-50"
+                    >
+                      <Icon name="trash" className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
+
+                <p className="mt-3 text-sm font-bold leading-snug text-gray-900">{studentDisplayName(s)}</p>
+                <p className="mt-1 text-xs text-gray-500">{s.class_name}</p>
+                <p className={`mt-2 text-sm font-semibold ${visited ? 'text-trust-700' : 'text-close-700'}`}>
+                  {visited ? `เยี่ยมบ้านแล้ว · ${visit!.visitDate || 'ยังไม่ระบุวันที่'}` : 'ยังไม่ได้เยี่ยมบ้าน'}
+                </p>
               </div>
             );
           })}
