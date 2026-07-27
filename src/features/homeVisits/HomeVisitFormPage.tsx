@@ -592,6 +592,25 @@ export default function HomeVisitFormPage() {
               </div>
             </div>
           </div>
+
+          {existing.images.homeVisitPhotos.length > 0 && (
+            <div className="break-before-page">
+              <h2 className="text-center text-base font-bold">ภาพประกอบ</h2>
+              <h2 className="text-center text-base font-bold">บันทึกการเยี่ยมบ้านผู้เรียน</h2>
+              <div className="mt-6 space-y-4">
+                {existing.images.homeVisitPhotos.map((url) => (
+                  <img key={url} src={url} alt="" className="mx-auto w-full max-w-md rounded border border-gray-300" />
+                ))}
+              </div>
+              <div className="mt-10 flex justify-end">
+                <div className="text-center">
+                  <p>ลงชื่อ.............................................</p>
+                  <p className="mt-1">({existing.advisorTeacherName || '.............................................'})</p>
+                  <p>ครูที่ปรึกษา</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
