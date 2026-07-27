@@ -218,9 +218,9 @@ export default function StudentHomeVisitPage() {
         </div>
 
         <div className="mb-4 flex justify-end">
-          <button type="button" onClick={logout} className="text-xs font-medium text-gray-500 hover:text-close-700">
+          <Button variant="secondary" onClick={logout}>
             ออกจากระบบ
-          </button>
+          </Button>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white px-4 sm:px-5">
