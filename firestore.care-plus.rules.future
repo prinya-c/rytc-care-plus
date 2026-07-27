@@ -106,6 +106,19 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ---- home-visit-memos -------------------------------------------------------
+
+    match /home-visit-memos/{memoId} {
+      allow read: if isOverviewRole()
+        || (isAdvisorTeacher() && resource.data.advisorTeacherId == myTeacherId());
+      allow create: if isAdvisorTeacher()
+        && request.resource.data.advisorTeacherId == myTeacherId()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isOverviewRole()
+        || (isAdvisorTeacher() && resource.data.advisorTeacherId == myTeacherId());
+      allow delete: if isAdmin();
+    }
+
     // ---- homeroom-logs --------------------------------------------------------
 
     match /homeroom-logs/{logId} {

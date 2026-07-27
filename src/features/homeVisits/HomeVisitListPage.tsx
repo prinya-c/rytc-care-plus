@@ -69,7 +69,7 @@ export default function HomeVisitListPage() {
           onClick={() => navigate('/home-visits/memo')}
           className="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
         >
-          พิมพ์บันทึกข้อความ
+          สร้างบันทึกข้อความ
         </button>
       </div>
 
