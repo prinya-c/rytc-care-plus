@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchHomeroomLogsByTeacher, fetchAllHomeroomLogs, deleteHomeroomLog } from './api';
 import { deleteImageByUrl } from '../../lib/storage';
+import { formatThaiDate } from '../../utils/thaiDate';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
 import { Button } from '../../components/ui/Form';
 import { Badge } from '../../components/ui/Badge';
@@ -19,11 +20,29 @@ export default function HomeroomLogListPage() {
   const { showToast } = useToast();
   const overview = canViewCollegeOverview(profile?.role);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Which log is currently being printed, and whether the print dialog has
+  // been triggered — printing happens in place, without navigating away.
+  const [printLog, setPrintLog] = useState<HomeroomLog | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   const { data, loading, error, refetch } = useAsync(
     () => (overview ? fetchAllHomeroomLogs() : fetchHomeroomLogsByTeacher(profile?.teacherId ?? profile?.uid ?? '')),
     [overview, profile?.uid],
   );
+
+  useEffect(() => {
+    if (!printing) return;
+    const timer = setTimeout(() => window.print(), 50);
+    return () => clearTimeout(timer);
+  }, [printing]);
+
+  useEffect(() => {
+    function handleAfterPrint() {
+      setPrinting(false);
+    }
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
 
   async function handleDelete(log: HomeroomLog) {
     const ok = await confirm({
@@ -50,8 +69,8 @@ export default function HomeroomLogListPage() {
   if (error || !data) return <ErrorState onRetry={refetch} />;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5 print:space-y-0">
+      <div className="flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">บันทึกกิจกรรมโฮมรูม</h1>
           <p className="text-sm text-gray-500">ทั้งหมด {data.length} รายการ</p>
@@ -67,7 +86,7 @@ export default function HomeroomLogListPage() {
           description="เริ่มบันทึกการพบนักเรียนในคาบโฮมรูมครั้งแรกของคุณ"
         />
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 print:hidden">
           {data.map((log) => {
             const presentCount = log.totalStudents - log.absentStudents.length;
             return (
@@ -77,13 +96,17 @@ export default function HomeroomLogListPage() {
                     <Icon name="calendar" className="h-4 w-4" />
                   </div>
                   <div className="flex gap-1.5">
-                    <Link
-                      to={`/homeroom/${log.id}`}
-                      title="ดู / พิมพ์"
+                    <button
+                      type="button"
+                      title="พิมพ์บันทึกข้อความ"
+                      onClick={() => {
+                        setPrintLog(log);
+                        setPrinting(true);
+                      }}
                       className="flex h-7 w-7 items-center justify-center rounded-full bg-trust-100 text-trust-700 hover:bg-trust-200"
                     >
-                      <Icon name="eye" className="h-4 w-4" />
-                    </Link>
+                      <Icon name="printer" className="h-4 w-4" />
+                    </button>
                     <Link
                       to={`/homeroom/${log.id}/edit`}
                       title="แก้ไข"
@@ -127,6 +150,108 @@ export default function HomeroomLogListPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Print-only: official บันทึกข้อความ (memo) mirroring the college's paper form. */}
+      {printing && printLog && (
+        <div className="hidden print:block text-sm leading-relaxed">
+          <div className="relative flex items-center justify-center">
+            <img
+              src={`${import.meta.env.BASE_URL}300px-Thai_government_Garuda.jpg`}
+              alt="ครุฑ"
+              className="absolute left-0 h-16 w-auto"
+            />
+            <h2 className="text-lg font-bold">บันทึกข้อความ</h2>
+          </div>
+
+          <div className="mt-[1cm] flex items-baseline gap-1">
+            <span className="shrink-0 font-bold">ส่วนราชการ</span>
+            <span className="flex-1 border-b border-black">
+              {printLog.departmentName ? `แผนกวิชา${printLog.departmentName}` : ''} วิทยาลัยเทคนิคระยอง
+            </span>
+          </div>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="shrink-0">ที่</span>
+            <span className="flex-1 border-b border-black">{printLog.docNumber || ' '}</span>
+            <span className="shrink-0">วันที่</span>
+            <span className="flex-1 border-b border-black">{formatThaiDate(printLog.sessionDate)}</span>
+          </div>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="shrink-0 font-bold">เรื่อง</span>
+            <span className="flex-1 border-b border-black">
+              รายงานการพบนักเรียน นักศึกษา ครั้งที่ {printLog.sessionNumber} ภาคเรียนที่ {printLog.semester} ปีการศึกษา{' '}
+              {printLog.academicYear}
+            </span>
+          </div>
+
+          <hr className="mt-[0.5cm] border-t-2 border-black" />
+
+          <p className="mt-3">
+            <span className="font-bold">เรียน</span> ผู้อำนวยการวิทยาลัยเทคนิคระยอง
+          </p>
+
+          <p className="mt-3 indent-8 text-justify">
+            ตามที่วิทยาลัยเทคนิคระยอง ได้มอบหมายให้ข้าพเจ้าทำหน้าที่ครูที่ปรึกษาชั้น {printLog.className} มีนักเรียน
+            นักศึกษาในความดูแลจำนวน {printLog.totalStudents} คน กำหนดพบนักเรียนนักศึกษา ครั้งที่ {printLog.sessionNumber}{' '}
+            ของภาคเรียนนี้ในวันที่ {formatThaiDate(printLog.sessionDate)} นั้น
+          </p>
+          <p className="mt-3 indent-8 text-justify">
+            ข้าพเจ้าได้ปฏิบัติหน้าที่เรียบร้อยแล้ว มีนักเรียนมาพบครั้งนี้จำนวน {printLog.totalStudents - printLog.absentStudents.length}{' '}
+            คน ขาด {printLog.absentStudents.length} คน มีรายละเอียดการดูแลนักเรียน และการให้คำปรึกษา ดังนี้
+          </p>
+
+          <p className="mt-3">1. เรื่องที่ปรึกษา / คำแนะนำ / ปัญหาที่พบและการแก้ไข การแต่งกาย การมาเรียน</p>
+          <p className="indent-8 text-justify">{printLog.detail || '-'}</p>
+
+          <p className="mt-3">2. รายชื่อนักเรียนที่ขาด</p>
+          <p className="indent-8 text-justify">
+            {printLog.absentStudents.length > 0 ? printLog.absentStudents.map((s) => s.studentName).join(', ') : '-ไม่มี-'}
+          </p>
+
+          <p className="mt-3">จึงเรียนมาเพื่อโปรดพิจารณา</p>
+
+          <div className="mt-10 flex justify-end">
+            <div className="text-center">
+              <p>ลงชื่อ.............................................</p>
+              <p className="mt-1">({printLog.advisorTeacherName || '.............................................'})</p>
+              <p>ครูที่ปรึกษา</p>
+            </div>
+          </div>
+
+          <div className="mt-8 flex justify-end">
+            <div className="text-center">
+              <p>ลงชื่อ.............................................</p>
+              <p className="mt-1">({printLog.deptHeadName || '.............................................'})</p>
+              <p>หัวหน้าแผนกวิชา</p>
+            </div>
+          </div>
+
+          <div className="mt-8 flex justify-between">
+            <div className="text-center">
+              <p>ลงชื่อ.............................................</p>
+              <p className="mt-1">({printLog.advisorHeadName || '.............................................'})</p>
+              <p>หัวหน้างานครูที่ปรึกษา</p>
+            </div>
+            <div className="text-center">
+              <p>ลงชื่อ.............................................</p>
+              <p className="mt-1">({printLog.deputyDirectorName || '.............................................'})</p>
+              <p>รองผู้อำนวยการฝ่ายพัฒนากิจการนักเรียน</p>
+            </div>
+          </div>
+
+          {printLog.images.length > 0 && (
+            <div className="break-before-page">
+              <h2 className="text-center text-base font-bold">ภาพประกอบการพบนักเรียน นักศึกษา</h2>
+              <div className="mt-4 flex flex-wrap justify-center gap-3">
+                {printLog.images.map((url) => (
+                  <div key={url} className="border border-black p-1">
+                    <img src={url} alt="" className="h-64 w-auto object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
