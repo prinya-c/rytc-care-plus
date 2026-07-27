@@ -8,7 +8,7 @@ import { uploadDropoutFollowUpImage } from '../../lib/storage';
 import { canViewCollegeOverview } from '../../utils/rbac';
 import type { ContactChannels } from '../../types';
 import { LoadingState, ErrorState, Spinner } from '../../components/ui/States';
-import { Section, Field, Input, Textarea, Select, Button, Checkbox } from '../../components/ui/Form';
+import { Section, Field, Input, Textarea, Select, Button, Checkbox, Radio } from '../../components/ui/Form';
 import { useToast } from '../../components/ui/Toast';
 
 export const emptyContactChannels: ContactChannels = {
@@ -96,6 +96,7 @@ export default function DropoutFollowUpFormPage() {
   const [parentContactChannels, setParentContactChannels] = useState<ContactChannels>(emptyContactChannels);
   const [parentContactEvidence, setParentContactEvidence] = useState<string[]>([]);
   const [followUpSummary, setFollowUpSummary] = useState('');
+  const [followUpResult, setFollowUpResult] = useState('');
   const [uploadingStudentEvidence, setUploadingStudentEvidence] = useState(false);
   const [uploadingParentEvidence, setUploadingParentEvidence] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -123,6 +124,7 @@ export default function DropoutFollowUpFormPage() {
       setParentContactChannels(record.parentContactChannels);
       setParentContactEvidence(record.parentContactEvidence);
       setFollowUpSummary(record.followUpSummary);
+      setFollowUpResult(record.followUpResult);
     }
   }, [data]);
 
@@ -184,6 +186,7 @@ export default function DropoutFollowUpFormPage() {
         parentContactChannels,
         parentContactEvidence,
         followUpSummary,
+        followUpResult,
         status: 'submitted' as const,
         createdBy: existing?.createdBy ?? profile.uid,
       };
@@ -265,6 +268,23 @@ export default function DropoutFollowUpFormPage() {
 
         <Section title="7. สรุปผลการติดตามผู้เรียน">
           <Textarea rows={3} value={followUpSummary} onChange={(e) => setFollowUpSummary(e.target.value)} />
+        </Section>
+
+        <Section title="8. ผลการติดตาม">
+          <div className="flex flex-wrap gap-x-6 gap-y-1">
+            <Radio
+              label="ติดตามผู้เรียนสำเร็จ"
+              name="followUpResult"
+              checked={followUpResult === 'ติดตามผู้เรียนสำเร็จ'}
+              onChange={() => setFollowUpResult('ติดตามผู้เรียนสำเร็จ')}
+            />
+            <Radio
+              label="ติดตามผู้เรียนไม่สำเร็จ"
+              name="followUpResult"
+              checked={followUpResult === 'ติดตามผู้เรียนไม่สำเร็จ'}
+              onChange={() => setFollowUpResult('ติดตามผู้เรียนไม่สำเร็จ')}
+            />
+          </div>
         </Section>
       </div>
 
