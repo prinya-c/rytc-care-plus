@@ -9,7 +9,7 @@ import { ThaiAddressFields } from './ThaiAddressFields';
 import { emptyStudentInfo, emptyFamilyInfo, emptyBehaviorInfo } from './HomeVisitFormPage';
 import type { BehaviorInfo, FamilyInfo, StudentInfo } from '../../types';
 import { LoadingState, ErrorState } from '../../components/ui/States';
-import { Section, Field, Input, Select, Button } from '../../components/ui/Form';
+import { Section, Field, Input, Select, SelectWithOther, Button } from '../../components/ui/Form';
 import { useToast } from '../../components/ui/Toast';
 
 const currentAcademicYear = String(new Date().getFullYear() + 543);
@@ -311,12 +311,11 @@ export default function StudentInfoFormPage() {
               </Select>
             </Field>
             <Field label="ภารกิจที่ได้รับมอบหมายจากครอบครัว">
-              <Select value={behaviorInfo.familyResponsibility} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, familyResponsibility: e.target.value })}>
-                <option value="">เลือกคำตอบ</option>
-                <option value="ทำงานบ้าน">ทำงานบ้าน</option>
-                <option value="หารายได้ช่วยครอบครัว">หารายได้ช่วยครอบครัว</option>
-                <option value="อื่นๆ">อื่นๆ</option>
-              </Select>
+              <SelectWithOther
+                value={behaviorInfo.familyResponsibility}
+                onChange={(v) => setBehaviorInfo({ ...behaviorInfo, familyResponsibility: v })}
+                options={['ทำงานบ้าน', 'หารายได้ช่วยครอบครัว']}
+              />
             </Field>
             <Field label="ความสัมพันธ์กับสมาชิกในครอบครัว">
               <Select value={behaviorInfo.familyRelationship} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, familyRelationship: e.target.value })}>

@@ -42,6 +42,49 @@ export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
   );
 }
 
+/**
+ * A <Select> whose last option is "อื่นๆ" (other) — picking it reveals a
+ * text input to specify. `options` should NOT include "อื่นๆ" itself; it's
+ * added automatically. A stored value that isn't one of `options` (e.g. a
+ * previously typed specify-text, or the literal "อื่นๆ" with nothing typed
+ * yet) is treated as the "other" case on load, so this round-trips.
+ */
+export function SelectWithOther({
+  value,
+  onChange,
+  options,
+  placeholder = 'เลือกคำตอบ',
+  otherPlaceholder = 'ระบุ...',
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  options: string[];
+  placeholder?: string;
+  otherPlaceholder?: string;
+}) {
+  const isOther = value !== '' && !options.includes(value);
+  return (
+    <div className="space-y-2">
+      <Select value={isOther ? 'อื่นๆ' : value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{placeholder}</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+        <option value="อื่นๆ">อื่นๆ</option>
+      </Select>
+      {isOther && (
+        <Input
+          value={value === 'อื่นๆ' ? '' : value}
+          onChange={(e) => onChange(e.target.value || 'อื่นๆ')}
+          placeholder={otherPlaceholder}
+        />
+      )}
+    </div>
+  );
+}
+
 export function Checkbox({ label, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
   return (
     <label className="flex items-start gap-2 py-1 text-sm text-gray-700">

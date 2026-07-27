@@ -10,7 +10,7 @@ import { calculateAge } from '../../utils/age';
 import { ThaiAddressFields } from './ThaiAddressFields';
 import type { FamilyInfo, HomeVisit, Student, StudentInfo } from '../../types';
 import { LoadingState, ErrorState, Spinner } from '../../components/ui/States';
-import { Section, Field, Input, Select, Button } from '../../components/ui/Form';
+import { Section, Field, Input, Select, SelectWithOther, Button } from '../../components/ui/Form';
 
 const currentAcademicYear = String(new Date().getFullYear() + 543);
 
@@ -391,12 +391,11 @@ export default function StudentHomeVisitPage() {
               </Field>
             </div>
             <Field label="ภารกิจที่ได้รับมอบหมายจากครอบครัว">
-              <Select value={familyResponsibility} onChange={(e) => setFamilyResponsibility(e.target.value)}>
-                <option value="">เลือกคำตอบ</option>
-                <option value="ทำงานบ้าน">ทำงานบ้าน</option>
-                <option value="หารายได้ช่วยครอบครัว">หารายได้ช่วยครอบครัว</option>
-                <option value="อื่นๆ">อื่นๆ</option>
-              </Select>
+              <SelectWithOther
+                value={familyResponsibility}
+                onChange={setFamilyResponsibility}
+                options={['ทำงานบ้าน', 'หารายได้ช่วยครอบครัว']}
+              />
             </Field>
           </Section>
 
