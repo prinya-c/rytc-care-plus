@@ -292,6 +292,8 @@ export interface DropoutFollowUp {
   parentContactChannels: ContactChannels;
   /** รูปภาพหลักฐานการติดต่อผู้ปกครอง */
   parentContactEvidence: string[];
+  /** สรุปผลการติดตามผู้เรียน */
+  followUpSummary: string;
   status: DocStatus;
   createdBy: string;
   createdAt: unknown;

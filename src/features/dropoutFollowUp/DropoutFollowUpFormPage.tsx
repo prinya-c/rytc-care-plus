@@ -95,6 +95,7 @@ export default function DropoutFollowUpFormPage() {
   const [studentContactEvidence, setStudentContactEvidence] = useState<string[]>([]);
   const [parentContactChannels, setParentContactChannels] = useState<ContactChannels>(emptyContactChannels);
   const [parentContactEvidence, setParentContactEvidence] = useState<string[]>([]);
+  const [followUpSummary, setFollowUpSummary] = useState('');
   const [uploadingStudentEvidence, setUploadingStudentEvidence] = useState(false);
   const [uploadingParentEvidence, setUploadingParentEvidence] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -121,6 +122,7 @@ export default function DropoutFollowUpFormPage() {
       setStudentContactEvidence(record.studentContactEvidence);
       setParentContactChannels(record.parentContactChannels);
       setParentContactEvidence(record.parentContactEvidence);
+      setFollowUpSummary(record.followUpSummary);
     }
   }, [data]);
 
@@ -181,6 +183,7 @@ export default function DropoutFollowUpFormPage() {
         studentContactEvidence,
         parentContactChannels,
         parentContactEvidence,
+        followUpSummary,
         status: 'submitted' as const,
         createdBy: existing?.createdBy ?? profile.uid,
       };
@@ -258,6 +261,10 @@ export default function DropoutFollowUpFormPage() {
             uploading={uploadingParentEvidence}
             onUpload={handleParentEvidenceUpload}
           />
+        </Section>
+
+        <Section title="7. สรุปผลการติดตามผู้เรียน">
+          <Textarea rows={3} value={followUpSummary} onChange={(e) => setFollowUpSummary(e.target.value)} />
         </Section>
       </div>
 
