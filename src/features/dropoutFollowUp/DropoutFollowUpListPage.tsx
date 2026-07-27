@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
@@ -11,6 +11,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Icon } from '../../components/ui/Icon';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
+import { DropoutFollowUpPrintDocument } from './DropoutFollowUpPrintDocument';
 import type { DropoutFollowUp } from '../../types';
 
 export default function DropoutFollowUpListPage() {
@@ -19,11 +20,29 @@ export default function DropoutFollowUpListPage() {
   const { showToast } = useToast();
   const overview = canViewCollegeOverview(profile?.role);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Which record is currently being printed, and whether the print dialog
+  // has been triggered — printing happens in place, without navigating away.
+  const [printTarget, setPrintTarget] = useState<DropoutFollowUp | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   const { data, loading, error, refetch } = useAsync(
     () => (overview ? fetchAllDropoutFollowUps() : fetchDropoutFollowUpsByTeacher(profile?.teacherId ?? profile?.uid ?? '')),
     [overview, profile?.uid],
   );
+
+  useEffect(() => {
+    if (!printing) return;
+    const timer = setTimeout(() => window.print(), 50);
+    return () => clearTimeout(timer);
+  }, [printing]);
+
+  useEffect(() => {
+    function handleAfterPrint() {
+      setPrinting(false);
+    }
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
 
   async function handleDelete(record: DropoutFollowUp) {
     const ok = await confirm({
@@ -51,8 +70,8 @@ export default function DropoutFollowUpListPage() {
   if (error || !data) return <ErrorState onRetry={refetch} />;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5 print:space-y-0">
+      <div className="flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">การติดตามผู้เรียนเพื่อแก้ปัญหาออกกลางคัน</h1>
           <p className="text-sm text-gray-500">ทั้งหมด {data.length} รายการ</p>
@@ -68,7 +87,7 @@ export default function DropoutFollowUpListPage() {
           description="เริ่มบันทึกการติดตามผู้เรียนที่ขาดเรียนครั้งแรกของคุณ"
         />
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 print:hidden">
           {data.map((record) => (
             <div key={record.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
@@ -76,6 +95,17 @@ export default function DropoutFollowUpListPage() {
                   <Icon name="user-minus" className="h-4 w-4" />
                 </div>
                 <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    title="พิมพ์บันทึกข้อความ รายงานผลการติดตามผู้เรียน"
+                    onClick={() => {
+                      setPrintTarget(record);
+                      setPrinting(true);
+                    }}
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-trust-100 text-trust-700 hover:bg-trust-200"
+                  >
+                    <Icon name="printer" className="h-4 w-4" />
+                  </button>
                   <Link
                     to={`/dropout-follow-up/${record.id}/edit`}
                     title="แก้ไข"
@@ -110,6 +140,12 @@ export default function DropoutFollowUpListPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {printing && printTarget && (
+        <div className="hidden print:block text-sm leading-relaxed">
+          <DropoutFollowUpPrintDocument record={printTarget} />
         </div>
       )}
     </div>
