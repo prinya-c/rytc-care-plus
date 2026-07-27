@@ -96,6 +96,30 @@ export default function ScreeningRoundListPage() {
                     </button>
                     <button
                       type="button"
+                      title="พิมพ์บันทึกข้อความ"
+                      onClick={() =>
+                        navigate('/screenings/summary', {
+                          state: { academicYear: r.academicYear, semester: r.semester, openPrint: 'memo' },
+                        })
+                      }
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200"
+                    >
+                      <Icon name="printer" className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      title="พิมพ์สรุป"
+                      onClick={() =>
+                        navigate('/screenings/summary', {
+                          state: { academicYear: r.academicYear, semester: r.semester, openPrint: 'report' },
+                        })
+                      }
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200"
+                    >
+                      <Icon name="printer" className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
                       title="คัดกรองต่อ / แก้ไข"
                       onClick={() => navigate(`/screenings/${r.academicYear}/${r.semester}`)}
                       className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200"
