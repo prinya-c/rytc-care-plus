@@ -9,7 +9,6 @@ import { SCREENING_CATEGORY_ORDER } from './checklist';
 import { Card, CardHeader, CardBody, StatCard } from '../../components/ui/Card';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
 import { Select, Button, Field, Input } from '../../components/ui/Form';
-import { Icon } from '../../components/ui/Icon';
 import { formatThaiDate } from '../../utils/thaiDate';
 import { SCREENING_CATEGORY_LABEL, type ResultGroup, type Teacher } from '../../types';
 
@@ -73,17 +72,22 @@ export default function ScreeningSummaryPage() {
   // A round card's "ดูผลรวม" button navigates here with the round already
   // picked, so the dashboard opens pre-filtered instead of showing everyone.
   const location = useLocation();
-  const initialFilter = location.state as { academicYear?: string; semester?: string } | null;
+  const initialFilter = location.state as
+    | { academicYear?: string; semester?: string; openPrint?: 'memo' | 'report' }
+    | null;
   const [academicYear, setAcademicYear] = useState(initialFilter?.academicYear ?? '');
   const [semester, setSemester] = useState(initialFilter?.semester ?? '');
   const [classFilter, setClassFilter] = useState('');
   const [departmentId, setDepartmentId] = useState('');
   // Which print-only section is currently shown — only one prints at a time.
   const [printMode, setPrintMode] = useState<'memo' | 'report' | null>(null);
-  const [showMemoModal, setShowMemoModal] = useState(false);
+  // The round list's printer icons navigate straight here with the modal
+  // already requested, instead of landing on the summary and requiring a
+  // second click.
+  const [showMemoModal, setShowMemoModal] = useState(initialFilter?.openPrint === 'memo');
   const [memoDate, setMemoDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [deptHeadName, setDeptHeadName] = useState('');
-  const [showReportModal, setShowReportModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(initialFilter?.openPrint === 'report');
   const [reportDeptHeadName, setReportDeptHeadName] = useState('');
 
   const { profile } = useAuth();
@@ -163,29 +167,9 @@ export default function ScreeningSummaryPage() {
 
   return (
     <div className="space-y-5 print:space-y-3">
-      <div className="flex items-center justify-between print:hidden">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">สรุปผลการคัดกรองผู้เรียน</h1>
-          <p className="text-sm text-gray-500">ทั้งหมด {filtered.length} รายการ</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            title="พิมพ์บันทึกข้อความ"
-            onClick={() => setShowMemoModal(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200"
-          >
-            <Icon name="printer" className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            title="พิมพ์สรุป"
-            onClick={() => setShowReportModal(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200"
-          >
-            <Icon name="printer" className="h-5 w-5" />
-          </button>
-        </div>
+      <div className="print:hidden">
+        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">สรุปผลการคัดกรองผู้เรียน</h1>
+        <p className="text-sm text-gray-500">ทั้งหมด {filtered.length} รายการ</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 print:hidden">
