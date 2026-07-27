@@ -311,7 +311,12 @@ export default function StudentInfoFormPage() {
               </Select>
             </Field>
             <Field label="ภารกิจที่ได้รับมอบหมายจากครอบครัว">
-              <Input value={behaviorInfo.familyResponsibility} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, familyResponsibility: e.target.value })} />
+              <Select value={behaviorInfo.familyResponsibility} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, familyResponsibility: e.target.value })}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="ทำงานบ้าน">ทำงานบ้าน</option>
+                <option value="หารายได้ช่วยครอบครัว">หารายได้ช่วยครอบครัว</option>
+                <option value="อื่นๆ">อื่นๆ</option>
+              </Select>
             </Field>
             <Field label="ความสัมพันธ์กับสมาชิกในครอบครัว">
               <Select value={behaviorInfo.familyRelationship} onChange={(e) => setBehaviorInfo({ ...behaviorInfo, familyRelationship: e.target.value })}>
