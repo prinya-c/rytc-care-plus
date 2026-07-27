@@ -294,6 +294,8 @@ export interface DropoutFollowUp {
   parentContactEvidence: string[];
   /** สรุปผลการติดตามผู้เรียน */
   followUpSummary: string;
+  /** ผลการติดตาม — "ติดตามผู้เรียนสำเร็จ" | "ติดตามผู้เรียนไม่สำเร็จ" */
+  followUpResult: string;
   status: DocStatus;
   createdBy: string;
   createdAt: unknown;

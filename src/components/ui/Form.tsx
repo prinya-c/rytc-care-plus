@@ -98,6 +98,19 @@ export function Checkbox({ label, ...props }: InputHTMLAttributes<HTMLInputEleme
   );
 }
 
+export function Radio({ label, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+  return (
+    <label className="flex items-start gap-2 py-1 text-sm text-gray-700">
+      <input
+        type="radio"
+        {...props}
+        className="mt-0.5 h-4 w-4 shrink-0 border-gray-300 text-brand-600 focus:ring-brand-500"
+      />
+      <span>{label}</span>
+    </label>
+  );
+}
+
 export function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
     <div className="border-b border-gray-100 py-5 first:pt-0 last:border-0">
