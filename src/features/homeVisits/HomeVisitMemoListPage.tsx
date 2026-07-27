@@ -75,7 +75,7 @@ export default function HomeVisitMemoListPage() {
                 </div>
                 <div className="flex gap-1.5">
                   <Link
-                    to={`/home-visits/memo/${memo.id}`}
+                    to={`/home-visits/memo/${memo.id}?print=1`}
                     title="ดู / พิมพ์"
                     className="flex h-7 w-7 items-center justify-center rounded-full bg-trust-100 text-trust-700 hover:bg-trust-200"
                   >
