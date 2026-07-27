@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
@@ -10,7 +10,8 @@ import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States
 import { Icon } from '../../components/ui/Icon';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
-import type { HomeVisit } from '../../types';
+import { HomeVisitPrintDocument } from './HomeVisitPrintDocument';
+import type { HomeVisit, Student } from '../../types';
 
 export default function HomeVisitListPage() {
   const { profile } = useAuth();
@@ -20,6 +21,24 @@ export default function HomeVisitListPage() {
   const overview = canViewCollegeOverview(profile?.role);
   const teacherId = profile?.teacherId ?? profile?.uid ?? '';
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Which visit is currently being printed, and whether the print dialog has
+  // been triggered — printing happens in place, without navigating away.
+  const [printTarget, setPrintTarget] = useState<{ visit: HomeVisit; student: Student } | null>(null);
+  const [printing, setPrinting] = useState(false);
+
+  useEffect(() => {
+    if (!printing) return;
+    const timer = setTimeout(() => window.print(), 50);
+    return () => clearTimeout(timer);
+  }, [printing]);
+
+  useEffect(() => {
+    function handleAfterPrint() {
+      setPrinting(false);
+    }
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
 
   const { data, loading, error, refetch } = useAsync(async () => {
     const [visits, students] = await Promise.all([
@@ -58,8 +77,8 @@ export default function HomeVisitListPage() {
   if (error || !data) return <ErrorState onRetry={refetch} />;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
+    <div className="space-y-5 print:space-y-0">
+      <div className="flex items-start justify-between gap-3 print:hidden">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">เยี่ยมบ้าน</h1>
           <p className="text-sm text-gray-500">ทั้งหมด {data.students.length} คน</p>
@@ -79,7 +98,7 @@ export default function HomeVisitListPage() {
           description='ตรวจสอบกลุ่มเรียนได้ที่เมนู "กลุ่มเรียนของฉัน"'
         />
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 print:hidden">
           {data.students.map((s) => {
             const visit = data.visitByStudent.get(s.sid);
             const visited = visit?.status === 'submitted';
@@ -92,19 +111,23 @@ export default function HomeVisitListPage() {
               >
                 <div className="flex items-center justify-end gap-1.5">
                   {visit ? (
-                    <Link
-                      to={`/home-visits/${visit.id}/edit?print=1`}
+                    <button
+                      type="button"
                       title="พิมพ์แบบบันทึกการเยี่ยมบ้านผู้เรียน"
+                      onClick={() => {
+                        setPrintTarget({ visit, student: s });
+                        setPrinting(true);
+                      }}
                       className="flex h-7 w-7 items-center justify-center rounded-full bg-trust-100 text-trust-700 hover:bg-trust-200"
                     >
-                      <Icon name="eye" className="h-4 w-4" />
-                    </Link>
+                      <Icon name="printer" className="h-4 w-4" />
+                    </button>
                   ) : (
                     <span
                       title="ยังไม่มีข้อมูลให้พิมพ์"
                       className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-300"
                     >
-                      <Icon name="eye" className="h-4 w-4" />
+                      <Icon name="printer" className="h-4 w-4" />
                     </span>
                   )}
                   <Link
@@ -137,6 +160,8 @@ export default function HomeVisitListPage() {
           })}
         </div>
       )}
+
+      {printing && printTarget && <HomeVisitPrintDocument visit={printTarget.visit} student={printTarget.student} />}
     </div>
   );
 }
