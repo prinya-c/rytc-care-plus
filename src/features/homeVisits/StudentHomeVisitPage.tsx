@@ -330,14 +330,12 @@ export default function StudentHomeVisitPage() {
                 </Select>
               </Field>
               <Field label="ลักษณะที่อยู่อาศัย">
-                <Select value={familyInfo.houseType} onChange={(e) => setFamilyInfo({ ...familyInfo, houseType: e.target.value })}>
-                  <option value="">เลือกลักษณะที่อยู่อาศัย</option>
-                  <option value="บ้านพ่อแม่">บ้านพ่อแม่</option>
-                  <option value="บ้านเช่า">บ้านเช่า</option>
-                  <option value="บ้านญาติ">บ้านญาติ</option>
-                  <option value="หอพัก">หอพัก</option>
-                  <option value="อื่นๆ">อื่นๆ</option>
-                </Select>
+                <SelectWithOther
+                  value={familyInfo.houseType}
+                  onChange={(v) => setFamilyInfo({ ...familyInfo, houseType: v })}
+                  options={['บ้านพ่อแม่', 'บ้านเช่า', 'บ้านญาติ', 'หอพัก']}
+                  placeholder="เลือกลักษณะที่อยู่อาศัย"
+                />
               </Field>
               <Field label="จำนวนพี่น้องทั้งหมด">
                 <Input value={familyInfo.siblingsTotal} onChange={(e) => setFamilyInfo({ ...familyInfo, siblingsTotal: e.target.value })} />
