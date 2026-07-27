@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAsync } from "../../hooks/useAsync";
 import { fetchHomeVisitMemoById } from "./memoApi";
 import { formatThaiDate } from "../../utils/thaiDate";
@@ -8,6 +8,7 @@ import { Button } from "../../components/ui/Form";
 
 export default function HomeVisitMemoDetailPage() {
   const { memoId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [printing, setPrinting] = useState(false);
 
   const {
@@ -16,6 +17,16 @@ export default function HomeVisitMemoDetailPage() {
     error,
     refetch,
   } = useAsync(() => fetchHomeVisitMemoById(memoId!), [memoId]);
+
+  useEffect(() => {
+    // Reached via the eye icon on the list ("ดู / พิมพ์") — open the print
+    // dialog immediately so its own preview pane serves as the print preview.
+    if (memo && searchParams.get("print") === "1") {
+      setPrinting(true);
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memo]);
 
   useEffect(() => {
     if (!printing) return;
