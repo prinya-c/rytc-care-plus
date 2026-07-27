@@ -52,7 +52,7 @@ const REQUIRED_FAMILY_INFO_FIELDS: { key: keyof FamilyInfo; label: string }[] = 
   { key: 'maleSiblings', label: 'พี่น้องชาย' },
   { key: 'femaleSiblings', label: 'พี่น้องหญิง' },
   { key: 'currentGuardian', label: 'ผู้ที่นักเรียนอาศัยอยู่ด้วย' },
-  { key: 'guardianRelationship', label: 'ความเกี่ยวข้องกับผู้ปกครอง' },
+  { key: 'guardianRelationship', label: 'เกี่ยวข้องเป็น...กับผู้เรียน' },
   { key: 'emergencyContactName', label: 'บุคคลที่สามารถติดต่อได้' },
   { key: 'emergencyContactPhone', label: 'เบอร์โทรบุคคลที่ติดต่อได้' },
 ];
@@ -354,7 +354,7 @@ export default function StudentHomeVisitPage() {
               <Field label="ผู้ที่นักเรียนอาศัยอยู่ด้วย">
                 <Input value={familyInfo.currentGuardian} onChange={(e) => setFamilyInfo({ ...familyInfo, currentGuardian: e.target.value })} />
               </Field>
-              <Field label="ความเกี่ยวข้องกับผู้ปกครอง">
+              <Field label="เกี่ยวข้องเป็น...กับผู้เรียน" hint="เช่น บิดา มารดา ปู่ ย่า ตา ยาย ลุง ป้า">
                 <Input
                   value={familyInfo.guardianRelationship}
                   onChange={(e) => setFamilyInfo({ ...familyInfo, guardianRelationship: e.target.value })}
