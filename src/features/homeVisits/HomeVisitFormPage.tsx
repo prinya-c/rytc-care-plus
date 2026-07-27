@@ -8,7 +8,7 @@ import { uploadHomeVisitImage } from '../../lib/storage';
 import { formatThaiDate } from '../../utils/thaiDate';
 import type { BehaviorInfo, FamilyInfo, StudentInfo } from '../../types';
 import { LoadingState, ErrorState, Spinner } from '../../components/ui/States';
-import { Section, Field, Input, Textarea, Button } from '../../components/ui/Form';
+import { Section, Field, Input, Textarea, Select, Button } from '../../components/ui/Form';
 import { useToast } from '../../components/ui/Toast';
 
 export const emptyStudentInfo: StudentInfo = {
@@ -69,11 +69,15 @@ export const emptyBehaviorInfo: BehaviorInfo = {
 };
 
 /**
- * The teacher's part of a home visit: when it happened, photos/map, and
- * opinions. Personal/family/behavior info lives in the same HomeVisit
- * document but is edited from the ข้อมูลผู้เรียน page (StudentInfoFormPage)
- * instead — this form never touches those fields, so it never overwrites
- * them either (Firestore's updateDoc only writes the keys it's given).
+ * The teacher's part of a home visit: when it happened, photos/map,
+ * opinions, and the sensitive behavior questions (13-17, 19 on the paper
+ * form) meant to be observed/asked in person during the visit itself —
+ * these are also editable from the ข้อมูลผู้เรียน page (StudentInfoFormPage),
+ * since a teacher may want to review/update a student's record outside of
+ * an actual visit too. Personal/family info and the rest of behaviorInfo
+ * stay untouched here (only the 6 fields below are ever included in this
+ * form's save payload), so this form never clobbers what the ข้อมูลผู้เรียน
+ * page or the student's own self-report own.
  */
 export default function HomeVisitFormPage() {
   const { studentId, visitId } = useParams();
@@ -83,6 +87,12 @@ export default function HomeVisitFormPage() {
   const isEdit = !!visitId;
 
   const [visitDate, setVisitDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [alcoholOrDrugUse, setAlcoholOrDrugUse] = useState('');
+  const [nightOut, setNightOut] = useState('');
+  const [oppositeSexFriend, setOppositeSexFriend] = useState('');
+  const [smoking, setSmoking] = useState('');
+  const [gambling, setGambling] = useState('');
+  const [familyRelationship, setFamilyRelationship] = useState('');
   const [parentOpinion, setParentOpinion] = useState('');
   const [advisorOpinion, setAdvisorOpinion] = useState('');
   const [homeVisitPhotos, setHomeVisitPhotos] = useState<string[]>([]);
@@ -109,6 +119,12 @@ export default function HomeVisitFormPage() {
     if (data?.mode === 'edit' && data.existing) {
       const v = data.existing;
       setVisitDate(v.visitDate);
+      setAlcoholOrDrugUse(v.behaviorInfo.alcoholOrDrugUse);
+      setNightOut(v.behaviorInfo.nightOut);
+      setOppositeSexFriend(v.behaviorInfo.oppositeSexFriend);
+      setSmoking(v.behaviorInfo.smoking);
+      setGambling(v.behaviorInfo.gambling);
+      setFamilyRelationship(v.behaviorInfo.familyRelationship);
       setParentOpinion(v.parentOpinion);
       setAdvisorOpinion(v.advisorOpinion);
       setHomeVisitPhotos(v.images.homeVisitPhotos);
@@ -170,10 +186,13 @@ export default function HomeVisitFormPage() {
     if (!profile) return;
     setSaving(true);
     try {
+      const behaviorPatch = { alcoholOrDrugUse, nightOut, oppositeSexFriend, smoking, gambling, familyRelationship };
       if (isEdit && visitId) {
-        // Only the visit-owned fields — leaves studentInfo/familyInfo/behaviorInfo untouched.
+        // Visit-owned fields plus the 6 teacher-observed behavior questions —
+        // leaves studentInfo/familyInfo and the rest of behaviorInfo untouched.
         await updateHomeVisit(visitId, {
           visitDate,
+          behaviorInfo: { ...existing!.behaviorInfo, ...behaviorPatch },
           parentOpinion,
           advisorOpinion,
           images: { homeVisitPhotos, mapImage },
@@ -195,7 +214,7 @@ export default function HomeVisitFormPage() {
           visitDate,
           studentInfo: emptyStudentInfo,
           familyInfo: emptyFamilyInfo,
-          behaviorInfo: emptyBehaviorInfo,
+          behaviorInfo: { ...emptyBehaviorInfo, ...behaviorPatch },
           studentInfoUpdatedAt: null,
           parentOpinion,
           advisorOpinion,
@@ -247,6 +266,65 @@ export default function HomeVisitFormPage() {
           <Field label="วัน เดือน ปี ที่เยี่ยมบ้าน" required>
             <Input type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="max-w-xs" />
           </Field>
+        </Section>
+
+        <Section title="พฤติกรรมและสุขภาพ" description="สอบถาม/สังเกตจากการเยี่ยมบ้านจริง">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="พฤติกรรมเครื่องดื่มแอลกอฮอล์/สารเสพติด">
+              <Select value={alcoholOrDrugUse} onChange={(e) => setAlcoholOrDrugUse(e.target.value)}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="ดื่มบ่อยๆ">ดื่มบ่อยๆ</option>
+                <option value="ดื่มแต่ไม่บ่อย">ดื่มแต่ไม่บ่อย</option>
+                <option value="เคยดื่ม">เคยดื่ม</option>
+                <option value="ไม่เคยดื่ม">ไม่เคยดื่ม</option>
+              </Select>
+            </Field>
+            <Field label="การออกเที่ยวกลางคืน">
+              <Select value={nightOut} onChange={(e) => setNightOut(e.target.value)}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="บ่อยๆ">บ่อยๆ</option>
+                <option value="ออกแต่ไม่บ่อย">ออกแต่ไม่บ่อย</option>
+                <option value="นานๆครั้ง">นานๆครั้ง</option>
+                <option value="ไม่มี">ไม่มี</option>
+              </Select>
+            </Field>
+            <Field label="เพื่อนต่างเพศ">
+              <Select value={oppositeSexFriend} onChange={(e) => setOppositeSexFriend(e.target.value)}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="บ่อยๆ">บ่อยๆ</option>
+                <option value="ไม่บ่อย">ไม่บ่อย</option>
+                <option value="นานๆครั้ง">นานๆครั้ง</option>
+                <option value="ไม่มี">ไม่มี</option>
+              </Select>
+            </Field>
+            <Field label="การสูบบุหรี่">
+              <Select value={smoking} onChange={(e) => setSmoking(e.target.value)}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="สูบบ่อยๆ">สูบบ่อยๆ</option>
+                <option value="สูบไม่บ่อย">สูบไม่บ่อย</option>
+                <option value="นานๆครั้ง">นานๆครั้ง</option>
+                <option value="ไม่สูบ">ไม่สูบ</option>
+              </Select>
+            </Field>
+            <Field label="การพนัน">
+              <Select value={gambling} onChange={(e) => setGambling(e.target.value)}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="เล่นบ่อยๆ">เล่นบ่อยๆ</option>
+                <option value="เล่นแต่ไม่บ่อย">เล่นแต่ไม่บ่อย</option>
+                <option value="นานๆครั้ง">นานๆครั้ง</option>
+                <option value="ไม่เล่น">ไม่เล่น</option>
+              </Select>
+            </Field>
+            <Field label="ความสัมพันธ์กับสมาชิกในครอบครัว">
+              <Select value={familyRelationship} onChange={(e) => setFamilyRelationship(e.target.value)}>
+                <option value="">เลือกคำตอบ</option>
+                <option value="ดีมาก">ดีมาก</option>
+                <option value="ดี">ดี</option>
+                <option value="ปานกลาง">ปานกลาง</option>
+                <option value="น้อย">น้อย</option>
+              </Select>
+            </Field>
+          </div>
         </Section>
 
         <Section title="ความคิดเห็น">
