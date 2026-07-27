@@ -83,7 +83,7 @@ export default function HomeVisitMemoFormPage() {
 
   if (loading) return <LoadingState />;
   if (error || !data) return <ErrorState />;
-  if (isEdit && !data.existing) return <ErrorState title="ไม่พบบันทึกข้อความนี้" description="" />;
+  if (isEdit && !data.existing) return <ErrorState title="ไม่พบบันทึกข้อความเยี่ยมบ้านนี้" description="" />;
 
   async function handleSave() {
     if (!profile || !data) return;
@@ -108,11 +108,11 @@ export default function HomeVisitMemoFormPage() {
 
       if (isEdit && memoId) {
         await updateHomeVisitMemo(memoId, payload);
-        showToast('บันทึกข้อความสำเร็จ');
+        showToast('บันทึกข้อความเยี่ยมบ้านสำเร็จ');
         navigate(`/home-visits/memo/${memoId}`);
       } else {
         const id = await createHomeVisitMemo(payload);
-        showToast('บันทึกข้อความสำเร็จ');
+        showToast('บันทึกข้อความเยี่ยมบ้านสำเร็จ');
         navigate(`/home-visits/memo/${id}`);
       }
     } catch {
@@ -125,7 +125,7 @@ export default function HomeVisitMemoFormPage() {
   return (
     <div className="space-y-5 pb-24">
       <div>
-        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">บันทึกข้อความ</h1>
+        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">บันทึกข้อความเยี่ยมบ้าน</h1>
         <p className="text-sm text-gray-500">รายงานผลการออกเยี่ยมบ้านผู้เรียน — กรอกรายละเอียดให้ครบก่อนบันทึก</p>
       </div>
 
