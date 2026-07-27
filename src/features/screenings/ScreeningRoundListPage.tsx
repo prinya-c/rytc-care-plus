@@ -1,17 +1,75 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchAllScreenings, fetchScreeningsByTeacher, computeScreeningRounds, deleteScreening } from './api';
+import { fetchAllTeachers } from '../students/api';
+import { SCREENING_CATEGORY_ORDER } from './checklist';
 import { canViewCollegeOverview } from '../../utils/rbac';
+import { formatThaiDate } from '../../utils/thaiDate';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
-import { Button, Select, Field } from '../../components/ui/Form';
+import { Button, Select, Field, Input } from '../../components/ui/Form';
 import { Badge } from '../../components/ui/Badge';
 import { Icon } from '../../components/ui/Icon';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
+import { SCREENING_CATEGORY_LABEL, type ResultGroup, type Teacher } from '../../types';
 
 const currentAcademicYear = String(new Date().getFullYear() + 543);
+
+/** Compact single-select, type-to-filter combobox for picking a teacher's name. */
+function TeacherCombobox({
+  teachers,
+  value,
+  onChange,
+}: {
+  teachers: Teacher[];
+  value: string;
+  onChange: (name: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const q = value.trim().toLowerCase();
+  const filtered = teachers.filter((t) => !q || t.tname.toLowerCase().includes(q)).slice(0, 50);
+
+  return (
+    <div className="relative">
+      <Input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder="พิมพ์ชื่อครูเพื่อค้นหา..."
+      />
+      {open && (
+        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+          {filtered.length === 0 ? (
+            <li className="px-3 py-2 text-sm text-gray-400">ไม่พบชื่อครูที่ตรงกับคำค้นหา</li>
+          ) : (
+            filtered.map((t) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    onChange(t.tname);
+                    setOpen(false);
+                  }}
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-brand-50"
+                >
+                  {t.tname}
+                  {t.dep_name ? ` (${t.dep_name})` : ''}
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export default function ScreeningRoundListPage() {
   const { profile } = useAuth();
@@ -26,6 +84,33 @@ export default function ScreeningRoundListPage() {
   const [newSemester, setNewSemester] = useState('1');
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
+  // Which round a print action targets — set when a card's printer icon is
+  // clicked, so printing happens right here instead of navigating away.
+  const [printRound, setPrintRound] = useState<{ academicYear: string; semester: string } | null>(null);
+  // Which print-only section is currently shown — only one prints at a time.
+  const [printMode, setPrintMode] = useState<'memo' | 'report' | null>(null);
+  const [showMemoModal, setShowMemoModal] = useState(false);
+  const [memoDate, setMemoDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [deptHeadName, setDeptHeadName] = useState('');
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportDeptHeadName, setReportDeptHeadName] = useState('');
+
+  const { data: teachers } = useAsync(fetchAllTeachers, []);
+
+  useEffect(() => {
+    if (!printMode) return;
+    const timer = setTimeout(() => window.print(), 50);
+    return () => clearTimeout(timer);
+  }, [printMode]);
+
+  useEffect(() => {
+    function handleAfterPrint() {
+      setPrintMode(null);
+    }
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
+
   const { data, loading, error, refetch } = useAsync(
     () => (overview ? fetchAllScreenings() : fetchScreeningsByTeacher(teacherId)),
     [overview, teacherId],
@@ -35,6 +120,22 @@ export default function ScreeningRoundListPage() {
   if (error || !data) return <ErrorState onRetry={refetch} />;
 
   const rounds = computeScreeningRounds(data);
+
+  const printFiltered = printRound
+    ? data.filter((s) => s.academicYear === printRound.academicYear && s.semester === printRound.semester)
+    : [];
+
+  // Per-category breakdown — matches "แบบสรุปผลการคัดกรองผู้เรียน", the
+  // official print form (one row per category, count of students by group
+  // *within that category*, not the overall per-student result used above).
+  const categoryStats = SCREENING_CATEGORY_ORDER.map((key) => {
+    const counts: Record<ResultGroup, number> = { trust: 0, concern: 0, close: 0 };
+    for (const s of printFiltered) {
+      const g = s.categories?.[key]?.group ?? 'trust';
+      counts[g]++;
+    }
+    return { key, ...counts };
+  });
 
   async function handleDelete(academicYear: string, semester: string) {
     const key = `${academicYear}|${semester}`;
@@ -61,8 +162,8 @@ export default function ScreeningRoundListPage() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5 print:space-y-0">
+      <div className="flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">คัดกรองผู้เรียน</h1>
           <p className="text-sm text-gray-500">ทั้งหมด {rounds.length} รอบ</p>
@@ -75,7 +176,7 @@ export default function ScreeningRoundListPage() {
       {rounds.length === 0 ? (
         <EmptyState title="ยังไม่มีการคัดกรอง" description="เริ่มคัดกรองผู้เรียนรอบแรกของคุณ" />
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 print:hidden">
           {rounds.map((r) => {
             const total = r.trust + r.concern + r.close;
             const key = `${r.academicYear}|${r.semester}`;
@@ -97,11 +198,10 @@ export default function ScreeningRoundListPage() {
                     <button
                       type="button"
                       title="พิมพ์บันทึกข้อความ"
-                      onClick={() =>
-                        navigate('/screenings/summary', {
-                          state: { academicYear: r.academicYear, semester: r.semester, openPrint: 'memo' },
-                        })
-                      }
+                      onClick={() => {
+                        setPrintRound({ academicYear: r.academicYear, semester: r.semester });
+                        setShowMemoModal(true);
+                      }}
                       className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200"
                     >
                       <Icon name="printer" className="h-4 w-4" />
@@ -109,11 +209,10 @@ export default function ScreeningRoundListPage() {
                     <button
                       type="button"
                       title="พิมพ์สรุป"
-                      onClick={() =>
-                        navigate('/screenings/summary', {
-                          state: { academicYear: r.academicYear, semester: r.semester, openPrint: 'report' },
-                        })
-                      }
+                      onClick={() => {
+                        setPrintRound({ academicYear: r.academicYear, semester: r.semester });
+                        setShowReportModal(true);
+                      }}
                       className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200"
                     >
                       <Icon name="printer" className="h-4 w-4" />
@@ -157,6 +256,132 @@ export default function ScreeningRoundListPage() {
         </div>
       )}
 
+      {/* Print-only: official บันทึกข้อความ (memo) addressed to the college director. */}
+      {printMode === 'memo' && printRound && (
+        <div className="hidden print:block text-sm leading-relaxed">
+          <div className="relative flex items-center justify-center">
+            <img
+              src={`${import.meta.env.BASE_URL}300px-Thai_government_Garuda.jpg`}
+              alt="ครุฑ"
+              className="absolute left-0 h-16 w-auto"
+            />
+            <h2 className="text-lg font-bold">บันทึกข้อความ</h2>
+          </div>
+
+          <div className="mt-[1cm] flex items-baseline gap-1">
+            <span className="shrink-0 font-bold">ส่วนราชการ</span>
+            <span className="flex-1 border-b border-black">วิทยาลัยเทคนิคระยอง</span>
+          </div>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="shrink-0">ที่</span>
+            <span className="flex-1 border-b border-black">{' '}</span>
+            <span className="shrink-0">วันที่</span>
+            <span className="flex-1 border-b border-black">{formatThaiDate(memoDate)}</span>
+          </div>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="shrink-0 font-bold">เรื่อง</span>
+            <span className="flex-1 border-b border-black">
+              การคัดกรองนักเรียนนักศึกษาจำแนกกลุ่มไว้ใจ กลุ่มห่วงใย กลุ่มใกล้ชิด ประจำปีการศึกษา {printRound.academicYear}
+            </span>
+          </div>
+
+          <hr className="mt-[0.5cm] border-t-2 border-black" />
+
+          <p className="mt-3">
+            <span className="font-bold">เรียน</span> ผู้อำนวยการวิทยาลัยเทคนิคระยอง
+          </p>
+
+          <p className="mt-3 indent-8 text-justify">
+            ตามที่วิทยาลัยเทคนิคระยอง ได้มอบหมายให้ครูที่ปรึกษาจัดกลุ่มนักเรียนนักศึกษา กลุ่มไว้ใจ กลุ่มห่วงใย
+            กลุ่มใกล้ชิด ตามโครงการขับเคลื่อนแก้ไขปัญหาผู้เรียนอาชีวศึกษาออกนอกระบบการศึกษา (Vocational Education
+            Zero Drop Out) ปีการศึกษา {printRound.academicYear} นั้น
+          </p>
+          <p className="mt-3 indent-8 text-justify">
+            บัดนี้ ข้าพเจ้าได้ดำเนินการสรุปผลการคัดกรองและแบ่งกลุ่มนักเรียนนักศึกษา กลุ่มไว้ใจ กลุ่มห่วงใย
+            กลุ่มใกล้ชิด ดังเอกสารแนบมาท้ายนี้
+          </p>
+
+          <div className="mt-10 flex justify-end">
+            <div className="text-center">
+              <p>ลงชื่อ.............................................</p>
+              <p className="mt-1">({profile?.displayName || '.............................................'})</p>
+              <p>ครูที่ปรึกษา</p>
+            </div>
+          </div>
+
+          <div className="mt-8 flex justify-between">
+            <div className="text-center">
+              <p>ลงชื่อ.............................................</p>
+              <p className="mt-1">({deptHeadName || '.............................................'})</p>
+              <p>หัวหน้าแผนกวิชา</p>
+            </div>
+            <div className="text-center">
+              <p>ลงชื่อ.............................................</p>
+              <p className="mt-1">(นางสาวสิริขวัญ นพสันเทียะ)</p>
+              <p>หัวหน้างานครูที่ปรึกษา</p>
+            </div>
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <div className="text-center">
+              <p>ลงชื่อ.............................................</p>
+              <p className="mt-1">(นายชาคริต รุ่งรัตน์)</p>
+              <p>รองผู้อำนวยการฝ่ายกิจการนักเรียนนักศึกษา</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print-only: official "แบบสรุปผลการคัดกรองผู้เรียน" form layout — hidden on screen, shown only in print output. */}
+      {printMode === 'report' && printRound && (
+        <div className="hidden print:block">
+          <h2 className="text-center text-base font-bold">แบบสรุปผลการคัดกรองผู้เรียน</h2>
+          <p className="text-center text-sm">
+            ภาคเรียนที่ {printRound.semester} ปีการศึกษา {printRound.academicYear}
+          </p>
+          <p className="mt-3 text-center text-sm">
+            <span className="font-bold">กลุ่มเรียน</span> ....................... <span className="font-bold">แผนกวิชา</span>{' '}
+            .......................
+          </p>
+
+          <table className="mt-3 w-full border-collapse border border-black text-sm">
+            <thead>
+              <tr>
+                <th className="border border-black px-2 py-1.5 text-left">รายการพิจารณา</th>
+                <th className="border border-black px-2 py-1.5">กลุ่มใกล้ชิด (คน)</th>
+                <th className="border border-black px-2 py-1.5">กลุ่มห่วงใย (คน)</th>
+                <th className="border border-black px-2 py-1.5">กลุ่มไว้ใจ (คน)</th>
+                <th className="border border-black px-2 py-1.5">หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categoryStats.map((row) => (
+                <tr key={row.key}>
+                  <td className="border border-black px-2 py-1.5">{SCREENING_CATEGORY_LABEL[row.key]}</td>
+                  <td className="border border-black px-2 py-1.5 text-center">{row.close || ''}</td>
+                  <td className="border border-black px-2 py-1.5 text-center">{row.concern || ''}</td>
+                  <td className="border border-black px-2 py-1.5 text-center">{row.trust || ''}</td>
+                  <td className="border border-black px-2 py-1.5"></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="mt-10 flex justify-end">
+            <div className="text-center text-sm">
+              <p>ลงชื่อ.............................................ครูที่ปรึกษา</p>
+              <p className="mt-1">({profile?.displayName || '.............................................'})</p>
+            </div>
+          </div>
+          <div className="mt-8 flex justify-end">
+            <div className="text-center text-sm">
+              <p>ลงชื่อ.............................................หัวหน้าแผนก</p>
+              <p className="mt-1">({reportDeptHeadName || '.............................................'})</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showNewModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
@@ -186,6 +411,69 @@ export default function ScreeningRoundListPage() {
                 ยกเลิก
               </button>
               <Button onClick={() => navigate(`/screenings/${newYear}/${newSemester}`)}>เริ่มคัดกรอง</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMemoModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4 print:hidden">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-gray-900">ข้อมูลก่อนพิมพ์บันทึกข้อความ</h3>
+            <div className="mt-4 space-y-3">
+              <Field label="วันที่">
+                <Input type="date" value={memoDate} onChange={(e) => setMemoDate(e.target.value)} />
+              </Field>
+              <Field label="หัวหน้าแผนกวิชา">
+                <TeacherCombobox teachers={teachers ?? []} value={deptHeadName} onChange={setDeptHeadName} />
+              </Field>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setShowMemoModal(false)}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                ยกเลิก
+              </button>
+              <Button
+                disabled={!memoDate || !deptHeadName.trim()}
+                onClick={() => {
+                  setShowMemoModal(false);
+                  setPrintMode('memo');
+                }}
+              >
+                ดูตัวอย่างก่อนพิมพ์
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReportModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4 print:hidden">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-gray-900">ข้อมูลก่อนพิมพ์สรุป</h3>
+            <div className="mt-4 space-y-3">
+              <Field label="หัวหน้าแผนกวิชา">
+                <TeacherCombobox teachers={teachers ?? []} value={reportDeptHeadName} onChange={setReportDeptHeadName} />
+              </Field>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                ยกเลิก
+              </button>
+              <Button
+                disabled={!reportDeptHeadName.trim()}
+                onClick={() => {
+                  setShowReportModal(false);
+                  setPrintMode('report');
+                }}
+              >
+                ดูตัวอย่างก่อนพิมพ์
+              </Button>
             </div>
           </div>
         </div>
