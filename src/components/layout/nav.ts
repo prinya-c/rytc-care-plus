@@ -46,6 +46,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'advisor_teacher', 'advisor_staff'],
   },
   {
+    to: '/dropout-follow-up',
+    label: 'ติดตามออกกลางคัน',
+    icon: 'user-minus',
+    roles: ['admin', 'advisor_teacher', 'advisor_staff'],
+  },
+  {
     to: '/referrals',
     label: 'ส่งต่อผู้เรียน',
     icon: 'send',

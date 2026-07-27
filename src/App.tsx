@@ -27,6 +27,8 @@ const HomeVisitMemoPage = lazy(() => import('./features/homeVisits/HomeVisitMemo
 const HomeroomLogListPage = lazy(() => import('./features/homeroom/HomeroomLogListPage'));
 const HomeroomLogFormPage = lazy(() => import('./features/homeroom/HomeroomLogFormPage'));
 const HomeroomLogDetailPage = lazy(() => import('./features/homeroom/HomeroomLogDetailPage'));
+const DropoutFollowUpListPage = lazy(() => import('./features/dropoutFollowUp/DropoutFollowUpListPage'));
+const DropoutFollowUpFormPage = lazy(() => import('./features/dropoutFollowUp/DropoutFollowUpFormPage'));
 const ReferralFormPage = lazy(() => import('./features/referrals/ReferralFormPage'));
 const ReferralInboxPage = lazy(() => import('./features/referrals/ReferralInboxPage'));
 const ReferralDetailPage = lazy(() => import('./features/referrals/ReferralDetailPage'));
@@ -77,6 +79,9 @@ export default function App() {
                         <Route path="/homeroom/new" element={<HomeroomLogFormPage />} />
                         <Route path="/homeroom/:logId" element={<HomeroomLogDetailPage />} />
                         <Route path="/homeroom/:logId/edit" element={<HomeroomLogFormPage />} />
+                        <Route path="/dropout-follow-up" element={<DropoutFollowUpListPage />} />
+                        <Route path="/dropout-follow-up/new" element={<DropoutFollowUpFormPage />} />
+                        <Route path="/dropout-follow-up/:id/edit" element={<DropoutFollowUpFormPage />} />
                         <Route path="/referrals/new/:studentId" element={<ReferralFormPage />} />
                       </Route>
 

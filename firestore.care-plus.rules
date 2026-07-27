@@ -35,6 +35,9 @@ service cloud.firestore {
     match /homeroom-logs/{logId} {
       allow read, write: if true;
     }
+    match /dropout-follow-ups/{recordId} {
+      allow read, write: if true;
+    }
     match /referrals/{referralId} {
       allow read, write: if true;
     }

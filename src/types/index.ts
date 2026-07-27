@@ -240,6 +240,40 @@ export interface HomeroomLog {
   updatedAt: unknown;
 }
 
+export interface ContactChannels {
+  phone: boolean;
+  line: boolean;
+  homeVisit: boolean;
+  other: boolean;
+  otherDetail: string;
+}
+
+export interface DropoutFollowUp {
+  id: string;
+  studentId: string;
+  studentName: string;
+  classId: string;
+  className: string;
+  departmentId: string;
+  departmentName: string;
+  advisorTeacherId: string;
+  advisorTeacherName: string;
+  recordDate: string;
+  /** จำนวนวันที่ผู้เรียนขาดเรียนทั้งสิ้น */
+  absentDays: string;
+  absentReason: string;
+  studentContactChannels: ContactChannels;
+  /** รูปภาพหลักฐานการติดตามผู้เรียน */
+  studentContactEvidence: string[];
+  parentContactChannels: ContactChannels;
+  /** รูปภาพหลักฐานการติดต่อผู้ปกครอง */
+  parentContactEvidence: string[];
+  status: DocStatus;
+  createdBy: string;
+  createdAt: unknown;
+  updatedAt: unknown;
+}
+
 export type TargetWork = 'guidance' | 'scholarship' | 'rehabilitation';
 
 export const TARGET_WORK_LABEL: Record<TargetWork, string> = {

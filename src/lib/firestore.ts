@@ -21,6 +21,7 @@ export type CarePlusCollectionName =
   | 'screenings'
   | 'home-visits'
   | 'homeroom-logs'
+  | 'dropout-follow-ups'
   | 'referrals'
   | 'interventions'
   | 'follow-up-results';
