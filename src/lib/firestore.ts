@@ -20,6 +20,7 @@ export type CarePlusCollectionName =
   | 'users'
   | 'screenings'
   | 'home-visits'
+  | 'home-visit-memos'
   | 'homeroom-logs'
   | 'dropout-follow-ups'
   | 'referrals'

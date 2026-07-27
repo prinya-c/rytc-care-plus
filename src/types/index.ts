@@ -207,6 +207,30 @@ export interface HomeVisit {
   updatedAt: unknown;
 }
 
+export interface HomeVisitMemo {
+  id: string;
+  advisorTeacherId: string;
+  advisorTeacherName: string;
+  departmentName: string;
+  /** เลขที่คำสั่งแต่งตั้งคณะกรรมการ */
+  orderNumber: string;
+  /** ออกเยี่ยมบ้านเป็นครั้งที่ */
+  roundNumber: string;
+  level: string;
+  memoDate: string;
+  /** จำนวนนักเรียนในความดูแล ณ ตอนที่บันทึก (สแนปช็อต ไม่คำนวณใหม่) */
+  totalStudents: number;
+  /** จำนวนที่เยี่ยมบ้านแล้ว ณ ตอนที่บันทึก (สแนปช็อต ไม่คำนวณใหม่) */
+  visitedCount: number;
+  deptHeadName: string;
+  advisorHeadName: string;
+  deputyDirectorName: string;
+  status: DocStatus;
+  createdBy: string;
+  createdAt: unknown;
+  updatedAt: unknown;
+}
+
 export interface AbsentStudentEntry {
   studentId: string;
   studentName: string;

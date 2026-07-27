@@ -23,7 +23,9 @@ const HomeVisitSummaryPage = lazy(() => import('./features/homeVisits/HomeVisitS
 const StudentHomeVisitPage = lazy(() => import('./features/homeVisits/StudentHomeVisitPage'));
 const StudentInfoListPage = lazy(() => import('./features/homeVisits/StudentInfoListPage'));
 const StudentInfoFormPage = lazy(() => import('./features/homeVisits/StudentInfoFormPage'));
-const HomeVisitMemoPage = lazy(() => import('./features/homeVisits/HomeVisitMemoPage'));
+const HomeVisitMemoListPage = lazy(() => import('./features/homeVisits/HomeVisitMemoListPage'));
+const HomeVisitMemoFormPage = lazy(() => import('./features/homeVisits/HomeVisitMemoFormPage'));
+const HomeVisitMemoDetailPage = lazy(() => import('./features/homeVisits/HomeVisitMemoDetailPage'));
 const HomeroomLogListPage = lazy(() => import('./features/homeroom/HomeroomLogListPage'));
 const HomeroomLogFormPage = lazy(() => import('./features/homeroom/HomeroomLogFormPage'));
 const HomeroomLogDetailPage = lazy(() => import('./features/homeroom/HomeroomLogDetailPage'));
@@ -71,7 +73,10 @@ export default function App() {
                         <Route path="/student-info" element={<StudentInfoListPage />} />
                         <Route path="/student-info/:studentId" element={<StudentInfoFormPage />} />
                         <Route path="/home-visits" element={<HomeVisitListPage />} />
-                        <Route path="/home-visits/memo" element={<HomeVisitMemoPage />} />
+                        <Route path="/home-visits/memo" element={<HomeVisitMemoListPage />} />
+                        <Route path="/home-visits/memo/new" element={<HomeVisitMemoFormPage />} />
+                        <Route path="/home-visits/memo/:memoId/edit" element={<HomeVisitMemoFormPage />} />
+                        <Route path="/home-visits/memo/:memoId" element={<HomeVisitMemoDetailPage />} />
                         <Route path="/home-visits/new/:studentId" element={<HomeVisitFormPage />} />
                         <Route path="/home-visits/:visitId/edit" element={<HomeVisitFormPage />} />
                         <Route path="/home-visits/summary" element={<HomeVisitSummaryPage />} />
