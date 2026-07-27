@@ -351,7 +351,7 @@ export default function StudentHomeVisitPage() {
               <Field label="หญิง (คน)">
                 <Input value={familyInfo.femaleSiblings} onChange={(e) => setFamilyInfo({ ...familyInfo, femaleSiblings: e.target.value })} />
               </Field>
-              <Field label="ผู้ที่นักเรียนอาศัยอยู่ด้วย">
+              <Field label="ผู้ที่นักเรียนอาศัยอยู่ด้วย" hint="ป้อนชื่อ - นามสกุล ของเจ้าของบ้าน">
                 <Input value={familyInfo.currentGuardian} onChange={(e) => setFamilyInfo({ ...familyInfo, currentGuardian: e.target.value })} />
               </Field>
               <Field label="เกี่ยวข้องเป็น...กับผู้เรียน" hint="เช่น บิดา มารดา ปู่ ย่า ตา ยาย ลุง ป้า">
