@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchStudentByStudentId, studentDisplayName, studentSubtitle } from '../students/api';
@@ -82,6 +82,7 @@ export const emptyBehaviorInfo: BehaviorInfo = {
 export default function HomeVisitFormPage() {
   const { studentId, visitId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { profile } = useAuth();
   const { showToast } = useToast();
   const isEdit = !!visitId;
@@ -129,7 +130,13 @@ export default function HomeVisitFormPage() {
       setAdvisorOpinion(v.advisorOpinion);
       setHomeVisitPhotos(v.images.homeVisitPhotos);
       setMapImage(v.images.mapImage);
+      // Reached via the eye icon on the list card ("พิมพ์แบบบันทึกการเยี่ยมบ้านผู้เรียน") — print immediately.
+      if (searchParams.get('print') === '1') {
+        setPrinting(true);
+        setSearchParams({}, { replace: true });
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
   useEffect(() => {

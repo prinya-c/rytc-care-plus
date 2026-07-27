@@ -91,13 +91,22 @@ export default function HomeVisitListPage() {
                 }`}
               >
                 <div className="flex items-center justify-end gap-1.5">
-                  <Link
-                    to={`/student-info/${s.sid}`}
-                    title="ดูข้อมูลผู้เรียน"
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-trust-100 text-trust-700 hover:bg-trust-200"
-                  >
-                    <Icon name="eye" className="h-4 w-4" />
-                  </Link>
+                  {visit ? (
+                    <Link
+                      to={`/home-visits/${visit.id}/edit?print=1`}
+                      title="พิมพ์แบบบันทึกการเยี่ยมบ้านผู้เรียน"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-trust-100 text-trust-700 hover:bg-trust-200"
+                    >
+                      <Icon name="eye" className="h-4 w-4" />
+                    </Link>
+                  ) : (
+                    <span
+                      title="ยังไม่มีข้อมูลให้พิมพ์"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-300"
+                    >
+                      <Icon name="eye" className="h-4 w-4" />
+                    </span>
+                  )}
                   <Link
                     to={visit ? `/home-visits/${visit.id}/edit` : `/home-visits/new/${s.sid}`}
                     title="แก้ไขเยี่ยมบ้าน"
