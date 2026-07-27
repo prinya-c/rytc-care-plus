@@ -19,6 +19,10 @@ export async function uploadHomeroomLogImage(file: File, classId: string) {
   return uploadCompressedImage(file, `homeroom-logs/${classId}`);
 }
 
+export async function uploadDropoutFollowUpImage(file: File, studentId: string) {
+  return uploadCompressedImage(file, `dropout-follow-ups/${studentId}`);
+}
+
 /** Deletes an uploaded image given its Storage download URL. Safe to call on an already-deleted file. */
 export async function deleteImageByUrl(url: string) {
   try {

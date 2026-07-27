@@ -28,6 +28,14 @@ service firebase.storage {
       allow delete: if true;
     }
 
+    // Dropout follow-up evidence photos.
+    match /dropout-follow-ups/{studentId}/{fileName} {
+      allow read: if true;
+      allow create, update: if request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if true;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }
