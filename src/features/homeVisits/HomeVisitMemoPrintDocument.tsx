@@ -21,7 +21,7 @@ export function HomeVisitMemoPrintDocument({ memo }: { memo: HomeVisitMemo }) {
           {memo.departmentName ? `แผนกวิชา${memo.departmentName}` : ''} วิทยาลัยเทคนิคระยอง
         </span>
       </div>
-      <div className="mt-1 flex items-baseline gap-1">
+      <div className="mt-1 flex items-end gap-1">
         <span className="shrink-0">ที่</span>
         <span className="flex-1 border-b border-black">{memo.orderNumber || ' '}</span>
         <span className="shrink-0">วันที่</span>
@@ -77,12 +77,12 @@ export function HomeVisitMemoPrintDocument({ memo }: { memo: HomeVisitMemo }) {
         <div className="text-center">
           <p>ลงชื่อ.............................................</p>
           <p className="mt-1">({memo.advisorHeadName || '.............................................'})</p>
-          <p>หัวหน้างานครูที่ปรึกษา</p>
+          <p>หัวหน้างานครูที่ปรึกษาและการแนะแนว</p>
         </div>
         <div className="text-center">
           <p>ลงชื่อ.............................................</p>
           <p className="mt-1">({memo.deputyDirectorName || '.............................................'})</p>
-          <p>รองผู้อำนวยการฝ่ายพัฒนากิจการนักเรียน นักศึกษา</p>
+          <p>รองผู้อำนวยการฝ่ายกิจการนักเรียนนักศึกษา</p>
         </div>
       </div>
     </>

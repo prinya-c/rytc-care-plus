@@ -23,34 +23,49 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // บัญชีผู้ใช้งาน (ครู/เจ้าหน้าที่) — citizenId+password hash, role, classIds
     match /users/{uid} {
       allow read, write: if true;
     }
+    // แบบคัดกรองผู้เรียน (รายบุคคล ต่อรอบปีการศึกษา/ภาคเรียน)
     match /screenings/{screeningId} {
       allow read, write: if true;
     }
+    // แบบบันทึกการเยี่ยมบ้านผู้เรียน (รายบุคคล พร้อมรูปภาพ/แผนที่)
     match /home-visits/{visitId} {
       allow read, write: if true;
     }
+    // บันทึกข้อความสรุปผลการเยี่ยมบ้าน (เอกสารพิมพ์ต่อรอบ ไม่ใช่รายบุคคล)
     match /home-visit-memos/{memoId} {
       allow read, write: if true;
     }
+    // บันทึกกิจกรรมโฮมรูม (รายครั้งที่พบนักเรียนในคาบโฮมรูม)
     match /homeroom-logs/{logId} {
       allow read, write: if true;
     }
+    // บันทึกการติดตามผู้เรียนเพื่อแก้ปัญหาออกกลางคัน
     match /dropout-follow-ups/{recordId} {
       allow read, write: if true;
     }
+    // การส่งต่อผู้เรียนไปยังงานแนะแนว/ทุนการศึกษา/บำบัด
     match /referrals/{referralId} {
       allow read, write: if true;
     }
+    // การดำเนินการ (intervention) ของเจ้าหน้าที่ต่อเรื่องที่ถูกส่งต่อ
     match /interventions/{interventionId} {
       allow read, write: if true;
     }
+    // ผลการติดตามหลังดำเนินการ + การปิดเคส
     match /follow-up-results/{resultId} {
       allow read, write: if true;
     }
+    // ชื่อผู้ลงนาม (หัวหน้างานครูที่ปรึกษาฯ / รองผู้อำนวยการฯ) แยกตามปีการศึกษา+ภาคเรียน
+    // ใช้ดึงมาแสดงในเอกสารพิมพ์ทุกฉบับโดยอัตโนมัติ — แก้ไขได้จากเมนู "ตั้งค่า" ในแอป
+    match /signatory-settings/{settingId} {
+      allow read, write: if true;
+    }
 
+    // ปฏิเสธทุกอย่างที่ไม่ตรงกับ collection ด้านบน (ค่าเริ่มต้นแบบปิดกั้นไว้ก่อน)
     match /{document=**} {
       allow read, write: if false;
     }

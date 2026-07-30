@@ -25,7 +25,8 @@ export type CarePlusCollectionName =
   | 'dropout-follow-ups'
   | 'referrals'
   | 'interventions'
-  | 'follow-up-results';
+  | 'follow-up-results'
+  | 'signatory-settings';
 
 export function cpCollection(name: CarePlusCollectionName) {
   return collection(careDb, name);

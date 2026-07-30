@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchAllScreenings, fetchScreeningsByTeacher, computeScreeningRounds, deleteScreening } from './api';
-import { fetchAllTeachers } from '../students/api';
+import { fetchAllTeachers, fetchAllClasses } from '../students/api';
+import { fetchAllSignatorySettings } from '../settings/api';
 import { SCREENING_CATEGORY_ORDER } from './checklist';
 import { canViewCollegeOverview } from '../../utils/rbac';
 import { formatThaiDate } from '../../utils/thaiDate';
@@ -11,65 +12,12 @@ import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States
 import { Button, Select, Field, Input } from '../../components/ui/Form';
 import { Badge } from '../../components/ui/Badge';
 import { Icon } from '../../components/ui/Icon';
+import { TeacherCombobox } from '../../components/ui/TeacherCombobox';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
-import { SCREENING_CATEGORY_LABEL, type ResultGroup, type Teacher } from '../../types';
+import { SCREENING_CATEGORY_LABEL, type ResultGroup } from '../../types';
 
 const currentAcademicYear = String(new Date().getFullYear() + 543);
-
-/** Compact single-select, type-to-filter combobox for picking a teacher's name. */
-function TeacherCombobox({
-  teachers,
-  value,
-  onChange,
-}: {
-  teachers: Teacher[];
-  value: string;
-  onChange: (name: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const q = value.trim().toLowerCase();
-  const filtered = teachers.filter((t) => !q || t.tname.toLowerCase().includes(q)).slice(0, 50);
-
-  return (
-    <div className="relative">
-      <Input
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value);
-          setOpen(true);
-        }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="พิมพ์ชื่อครูเพื่อค้นหา..."
-      />
-      {open && (
-        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-          {filtered.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-gray-400">ไม่พบชื่อครูที่ตรงกับคำค้นหา</li>
-          ) : (
-            filtered.map((t) => (
-              <li key={t.id}>
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    onChange(t.tname);
-                    setOpen(false);
-                  }}
-                  className="block w-full px-3 py-2 text-left text-sm hover:bg-brand-50"
-                >
-                  {t.tname}
-                  {t.dep_name ? ` (${t.dep_name})` : ''}
-                </button>
-              </li>
-            ))
-          )}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 export default function ScreeningRoundListPage() {
   const { profile } = useAuth();
@@ -96,6 +44,11 @@ export default function ScreeningRoundListPage() {
   const [reportDeptHeadName, setReportDeptHeadName] = useState('');
 
   const { data: teachers } = useAsync(fetchAllTeachers, []);
+  const { data: classes } = useAsync(fetchAllClasses, []);
+  const { data: signatorySettings } = useAsync(fetchAllSignatorySettings, []);
+  const signatoryFor = printRound
+    ? signatorySettings?.find((s) => s.academicYear === printRound.academicYear && s.semester === printRound.semester)
+    : undefined;
 
   useEffect(() => {
     if (!printMode) return;
@@ -124,6 +77,11 @@ export default function ScreeningRoundListPage() {
   const printFiltered = printRound
     ? data.filter((s) => s.academicYear === printRound.academicYear && s.semester === printRound.semester)
     : [];
+  const classShortNameById = new Map((classes ?? []).map((c) => [c.class_code, c.short_name || c.class_name]));
+  const printClassNames = Array.from(
+    new Set(printFiltered.map((s) => classShortNameById.get(s.classId) || s.className).filter(Boolean)),
+  );
+  const printDepartmentNames = Array.from(new Set(printFiltered.map((s) => s.departmentName).filter(Boolean)));
 
   // Per-category breakdown — matches "แบบสรุปผลการคัดกรองผู้เรียน", the
   // official print form (one row per category, count of students by group
@@ -272,7 +230,7 @@ export default function ScreeningRoundListPage() {
             <span className="shrink-0 font-bold">ส่วนราชการ</span>
             <span className="flex-1 border-b border-black">วิทยาลัยเทคนิคระยอง</span>
           </div>
-          <div className="mt-1 flex items-baseline gap-1">
+          <div className="mt-1 flex items-end gap-1">
             <span className="shrink-0">ที่</span>
             <span className="flex-1 border-b border-black">{' '}</span>
             <span className="shrink-0">วันที่</span>
@@ -302,7 +260,7 @@ export default function ScreeningRoundListPage() {
           </p>
 
           <div className="mt-10 flex justify-end">
-            <div className="text-center">
+            <div className="w-64 text-center">
               <p>ลงชื่อ.............................................</p>
               <p className="mt-1">({profile?.displayName || '.............................................'})</p>
               <p>ครูที่ปรึกษา</p>
@@ -310,22 +268,22 @@ export default function ScreeningRoundListPage() {
           </div>
 
           <div className="mt-8 flex justify-between">
-            <div className="text-center">
+            <div className="w-64 text-center">
               <p>ลงชื่อ.............................................</p>
               <p className="mt-1">({deptHeadName || '.............................................'})</p>
               <p>หัวหน้าแผนกวิชา</p>
             </div>
-            <div className="text-center">
+            <div className="w-64 text-center">
               <p>ลงชื่อ.............................................</p>
-              <p className="mt-1">(นางสาวสิริขวัญ นพสันเทียะ)</p>
-              <p>หัวหน้างานครูที่ปรึกษา</p>
+              <p className="mt-1">({signatoryFor?.advisorHeadName || '.............................................'})</p>
+              <p>หัวหน้างานครูที่ปรึกษาและการแนะแนว</p>
             </div>
           </div>
 
           <div className="mt-8 flex justify-center">
-            <div className="text-center">
+            <div className="w-64 text-center">
               <p>ลงชื่อ.............................................</p>
-              <p className="mt-1">(นายชาคริต รุ่งรัตน์)</p>
+              <p className="mt-1">({signatoryFor?.deputyDirectorName || '.............................................'})</p>
               <p>รองผู้อำนวยการฝ่ายกิจการนักเรียนนักศึกษา</p>
             </div>
           </div>
@@ -340,8 +298,8 @@ export default function ScreeningRoundListPage() {
             ภาคเรียนที่ {printRound.semester} ปีการศึกษา {printRound.academicYear}
           </p>
           <p className="mt-3 text-center text-sm">
-            <span className="font-bold">กลุ่มเรียน</span> ....................... <span className="font-bold">แผนกวิชา</span>{' '}
-            .......................
+            <span className="font-bold">กลุ่มเรียน</span> {printClassNames.join(', ') || '.......................'}{' '}
+            <span className="font-bold">แผนกวิชา</span> {printDepartmentNames.join(', ') || '.......................'}
           </p>
 
           <table className="mt-3 w-full border-collapse border border-black text-sm">
@@ -369,14 +327,16 @@ export default function ScreeningRoundListPage() {
 
           <div className="mt-10 flex justify-end">
             <div className="text-center text-sm">
-              <p>ลงชื่อ.............................................ครูที่ปรึกษา</p>
+              <p>ลงชื่อ.............................................</p>
               <p className="mt-1">({profile?.displayName || '.............................................'})</p>
+              <p>ครูที่ปรึกษา</p>
             </div>
           </div>
           <div className="mt-8 flex justify-end">
             <div className="text-center text-sm">
-              <p>ลงชื่อ.............................................หัวหน้าแผนก</p>
+              <p>ลงชื่อ.............................................</p>
               <p className="mt-1">({reportDeptHeadName || '.............................................'})</p>
+              <p>หัวหน้าแผนก</p>
             </div>
           </div>
         </div>

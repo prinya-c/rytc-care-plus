@@ -6,6 +6,7 @@ export type UserRole =
   | 'advisor_staff'
   | 'guidance_staff'
   | 'scholarship_staff'
+  | 'discipline_staff'
   | 'rehabilitation_staff';
 
 export interface UserProfile {
@@ -218,6 +219,9 @@ export interface HomeVisitMemo {
   roundNumber: string;
   level: string;
   memoDate: string;
+  /** Which period's ผู้ลงนาม (SignatorySettings) to auto-fill from — memos before this field existed default to blank. */
+  academicYear: string;
+  semester: string;
   /** จำนวนนักเรียนในความดูแล ณ ตอนที่บันทึก (สแนปช็อต ไม่คำนวณใหม่) */
   totalStudents: number;
   /** จำนวนที่เยี่ยมบ้านแล้ว ณ ตอนที่บันทึก (สแนปช็อต ไม่คำนวณใหม่) */
@@ -302,20 +306,21 @@ export interface DropoutFollowUp {
   updatedAt: unknown;
 }
 
-export type TargetWork = 'guidance' | 'scholarship' | 'rehabilitation';
+export type TargetWork = 'guidance' | 'scholarship' | 'discipline' | 'rehabilitation';
 
 export const TARGET_WORK_LABEL: Record<TargetWork, string> = {
   guidance: 'งานแนะแนว',
   scholarship: 'งานทุนการศึกษา',
-  rehabilitation: 'งานบำบัดผู้เรียน',
+  discipline: 'งานปกครอง',
+  rehabilitation: 'งานส่งต่อไปยังสถานพยาบาล',
 };
 
-export type ReferralPriority = 'normal' | 'urgent' | 'critical';
-
-export const REFERRAL_PRIORITY_LABEL: Record<ReferralPriority, string> = {
-  normal: 'ปกติ',
-  urgent: 'เร่งด่วน',
-  critical: 'วิกฤต',
+/** ต่อท้าย TARGET_WORK_LABEL ในตัวเลือกส่งต่อ เช่น "งานแนะแนว เพื่อให้ครูแนะแนวให้คำปรึกษา" */
+export const TARGET_WORK_PURPOSE: Record<TargetWork, string> = {
+  guidance: 'เพื่อให้ครูแนะแนวให้คำปรึกษา',
+  scholarship: 'เพื่อเสนอขอทุนสนับสนุน',
+  discipline: 'เพื่อเข้ารับการปรับเปลี่ยนพฤติกรรม',
+  rehabilitation: 'เพื่อเข้ารับการบำบัดฟื้นฟู/รักษาพยาบาล',
 };
 
 export type ReferralStatus = 'sent' | 'received' | 'in_progress' | 'completed' | 'closed';
@@ -327,6 +332,41 @@ export const REFERRAL_STATUS_LABEL: Record<ReferralStatus, string> = {
   completed: 'ดำเนินการแล้ว',
   closed: 'ปิดเคสแล้ว',
 };
+
+/** ปัญหาที่เกิดขึ้นกับผู้เรียน — เลือกได้หลายข้อ, ใช้ในฟอร์มส่งต่อผู้เรียน */
+export interface StudentProblems {
+  financialHardship: boolean;
+  frequentAbsence: boolean;
+  notAttending: boolean;
+  familyProblem: boolean;
+  nightOuting: boolean;
+  fighting: boolean;
+  stealing: boolean;
+  gambling: boolean;
+  smoking: boolean;
+  alcohol: boolean;
+  drugs: boolean;
+  affair: boolean;
+  other: boolean;
+  otherDetail: string;
+}
+
+export const PROBLEM_LABEL: Record<Exclude<keyof StudentProblems, 'other' | 'otherDetail'>, string> = {
+  financialHardship: 'ขาดทุนทรัพย์',
+  frequentAbsence: 'ขาดเรียนบ่อย',
+  notAttending: 'ไม่เข้าเรียน',
+  familyProblem: 'ปัญหาครอบครัว',
+  nightOuting: 'เที่ยวกลางคืน',
+  fighting: 'ทะเลาะวิวาท',
+  stealing: 'ลักขโมย',
+  gambling: 'เล่นการพนัน',
+  smoking: 'บุหรี่/บุหรี่ไฟฟ้า',
+  alcohol: 'เครื่องดื่มแอลกอฮอล์',
+  drugs: 'ยาเสพติด',
+  affair: 'ชู้สาว',
+};
+
+export const PROBLEM_ORDER = Object.keys(PROBLEM_LABEL) as (keyof typeof PROBLEM_LABEL)[];
 
 export interface Referral {
   id: string;
@@ -348,8 +388,9 @@ export interface Referral {
   targetWork: TargetWork;
   targetWorkLabel: string;
 
-  reason: string;
-  priority: ReferralPriority;
+  problems: StudentProblems;
+  /** สรุปปัญหาพอสังเขป */
+  problemSummary: string;
 
   status: ReferralStatus;
 
@@ -447,4 +488,21 @@ export interface ReferralInboxSummary {
   in_progress: number;
   completed: number;
   closed: number;
+}
+
+/**
+ * Per-period names for the two signatories that appear on every printed
+ * บันทึกข้อความ (คัดกรอง / เยี่ยมบ้าน / โฮมรูม): หัวหน้างานครูที่ปรึกษาและการแนะแนว
+ * and รองผู้อำนวยการฝ่ายกิจการนักเรียนนักศึกษา. Both roles change hands often,
+ * so the name is versioned by academicYear+semester rather than stored once —
+ * old printed memos keep referencing whoever held the role at that time.
+ */
+export interface SignatorySettings {
+  id: string;
+  academicYear: string;
+  semester: string;
+  advisorHeadName: string;
+  deputyDirectorName: string;
+  updatedBy: string;
+  updatedAt: unknown;
 }

@@ -129,8 +129,8 @@ export default function DropoutFollowUpFormPage() {
   }, [data]);
 
   useEffect(() => {
-    if (!studentId && data && data.roster.length > 0) setStudentId(data.roster[0].sid);
-  }, [data, studentId]);
+    if (!isEdit && !studentId && data && data.roster.length > 0) setStudentId(data.roster[0].sid);
+  }, [isEdit, data, studentId]);
 
   if (loading) return <LoadingState />;
   if (error || !data) return <ErrorState />;

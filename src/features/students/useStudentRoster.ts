@@ -19,10 +19,17 @@ export interface RosterRow {
   referred: boolean;
 }
 
-export function useStudentRoster(profile: UserProfile) {
+/**
+ * `enabled: false` skips every fetch and resolves to `null` — used so
+ * college-overview roles (admin/advisor_staff) don't pull every student +
+ * screening + home-visit + referral in the college before the user has even
+ * picked a department/class filter to narrow it down.
+ */
+export function useStudentRoster(profile: UserProfile, enabled: boolean = true) {
   const scoped = !canViewCollegeOverview(profile.role);
 
   return useAsync(async () => {
+    if (!enabled) return null;
     const teacherId = profile.teacherId ?? profile.uid;
     const [students, screenings, homeVisits, referrals] = await Promise.all([
       scoped ? fetchStudentsByClasses(profile.classIds ?? []) : fetchAllStudents(),
@@ -52,7 +59,7 @@ export function useStudentRoster(profile: UserProfile) {
     }));
 
     return rows;
-  }, [profile.uid, scoped, JSON.stringify(profile.classIds)]);
+  }, [profile.uid, scoped, enabled, JSON.stringify(profile.classIds)]);
 }
 
 export function useRosterFilters(rows: RosterRow[] | null) {

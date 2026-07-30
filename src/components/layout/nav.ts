@@ -73,10 +73,11 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/referral-inbox',
     label: 'กล่องรับเรื่อง',
     icon: 'inbox',
-    roles: ['admin', 'guidance_staff', 'scholarship_staff', 'rehabilitation_staff'],
+    roles: ['advisor_staff', 'guidance_staff', 'scholarship_staff', 'discipline_staff', 'rehabilitation_staff'],
   },
   { to: '/reports', label: 'รายงาน', icon: 'chart', roles: ['admin', 'advisor_staff'] },
-  { to: '/users', label: 'จัดการผู้ใช้งาน', icon: 'cog', roles: ['admin', 'advisor_staff'] },
+  { to: '/users', label: 'จัดการผู้ใช้งาน', icon: 'cog', roles: ['admin'] },
+  { to: '/settings/signatories', label: 'ตั้งค่า', icon: 'sliders', roles: ['admin'] },
 ];
 
 export function navItemsForRole(role?: UserRole) {

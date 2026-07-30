@@ -11,10 +11,11 @@ import { Section, Field, Select, Textarea, Input, Button } from '../../component
 import { useToast } from '../../components/ui/Toast';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import {
-  REFERRAL_PRIORITY_LABEL,
   REFERRAL_STATUS_LABEL,
   INTERVENTION_ACTION_TYPE_LABEL,
   FINAL_RESULT_LABEL,
+  PROBLEM_LABEL,
+  PROBLEM_ORDER,
   type InterventionActionType,
   type FinalResult,
   type ReferralStatus,
@@ -154,22 +155,27 @@ export default function ReferralDetailPage() {
       <Card>
         <CardHeader
           title="ข้อมูลการส่งต่อ"
-          action={
-            <div className="flex gap-2">
-              <Badge tone={referral.priority === 'critical' ? 'red' : referral.priority === 'urgent' ? 'yellow' : 'gray'}>
-                {REFERRAL_PRIORITY_LABEL[referral.priority]}
-              </Badge>
-              <Badge tone={isClosed ? 'gray' : 'blue'}>{REFERRAL_STATUS_LABEL[referral.status]}</Badge>
-            </div>
-          }
+          action={<Badge tone={isClosed ? 'gray' : 'blue'}>{REFERRAL_STATUS_LABEL[referral.status]}</Badge>}
         />
         <CardBody className="space-y-2 text-sm text-gray-700">
           <p>
             <span className="text-gray-400">ส่งต่อโดย:</span> {referral.referredByName} ({referral.referredDate})
           </p>
-          <p>
-            <span className="text-gray-400">เหตุผล:</span> {referral.reason}
-          </p>
+          {referral.problems && PROBLEM_ORDER.some((key) => referral.problems[key]) && (
+            <p>
+              <span className="text-gray-400">ปัญหาที่พบ:</span>{' '}
+              {PROBLEM_ORDER.filter((key) => referral.problems[key])
+                .map((key) => PROBLEM_LABEL[key])
+                .join(', ')}
+              {referral.problems.other &&
+                (referral.problems.otherDetail ? ` อื่นๆ (${referral.problems.otherDetail})` : ' อื่นๆ')}
+            </p>
+          )}
+          {referral.problemSummary && (
+            <p>
+              <span className="text-gray-400">สรุปปัญหา:</span> {referral.problemSummary}
+            </p>
+          )}
           {!isClosed && (
             <div className="flex flex-wrap gap-2 pt-2">
               {referral.status === 'in_progress' && (

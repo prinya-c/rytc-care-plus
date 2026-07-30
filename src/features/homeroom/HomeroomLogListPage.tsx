@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchHomeroomLogsByTeacher, fetchAllHomeroomLogs, deleteHomeroomLog } from './api';
+import { fetchAllDepartments, fetchAllClasses } from '../students/api';
 import { deleteImageByUrl } from '../../lib/storage';
 import { formatThaiDate } from '../../utils/thaiDate';
+import { waitForImages } from '../../utils/waitForImages';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
 import { Button } from '../../components/ui/Form';
+import { SearchableSelect } from '../../components/ui/SearchableSelect';
 import { Badge } from '../../components/ui/Badge';
 import { Icon } from '../../components/ui/Icon';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
@@ -14,26 +17,66 @@ import { useToast } from '../../components/ui/Toast';
 import { canViewCollegeOverview } from '../../utils/rbac';
 import type { HomeroomLog } from '../../types';
 
+const ALL = '__all__';
+
 export default function HomeroomLogListPage() {
   const { profile } = useAuth();
   const confirm = useConfirm();
   const { showToast } = useToast();
   const overview = canViewCollegeOverview(profile?.role);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [classFilter, setClassFilter] = useState('');
+  const [deptFilter, setDeptFilter] = useState('');
   // Which log is currently being printed, and whether the print dialog has
   // been triggered — printing happens in place, without navigating away.
   const [printLog, setPrintLog] = useState<HomeroomLog | null>(null);
   const [printing, setPrinting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
-  const { data, loading, error, refetch } = useAsync(
-    () => (overview ? fetchAllHomeroomLogs() : fetchHomeroomLogsByTeacher(profile?.teacherId ?? profile?.uid ?? '')),
-    [overview, profile?.uid],
-  );
+  // For college-overview roles, a filter must be picked before the heavy
+  // fetch (every homeroom log in the college) runs at all.
+  const hasFilter = !!(classFilter || deptFilter);
+  const shouldLoad = !overview || hasFilter;
+
+  const { data: allLogs, loading, error, refetch } = useAsync(async () => {
+    if (!shouldLoad) return null;
+    return overview ? fetchAllHomeroomLogs() : fetchHomeroomLogsByTeacher(profile?.teacherId ?? profile?.uid ?? '');
+  }, [shouldLoad, overview, profile?.uid]);
+
+  // Overview roles need the filter dropdowns populated before the logs
+  // themselves have been fetched — pull them from the lightweight legacy
+  // collections instead of deriving them from the (possibly not-yet-loaded) data.
+  const { data: allDepartments } = useAsync(async () => (overview ? fetchAllDepartments() : []), [overview]);
+  const departmentOptions = Array.from(new Set((allDepartments ?? []).map((d) => d.dep_name))).filter(Boolean) as string[];
+
+  const { data: allClasses } = useAsync(fetchAllClasses, []);
+  const classOptions = useMemo(() => {
+    const list = allClasses ?? [];
+    const relevant = overview ? list : list.filter((c) => (profile?.classIds ?? []).includes(c.class_code));
+    return relevant.map((c) => ({ value: c.class_code, label: `${c.class_code} - ${c.short_name || c.class_name}` }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allClasses, overview, JSON.stringify(profile?.classIds)]);
+
+  const data = useMemo(() => {
+    if (!allLogs) return null;
+    return allLogs.filter((log) => {
+      if (classFilter && classFilter !== ALL && log.classId !== classFilter) return false;
+      if (deptFilter && deptFilter !== ALL && log.departmentName !== deptFilter) return false;
+      return true;
+    });
+  }, [allLogs, classFilter, deptFilter]);
 
   useEffect(() => {
     if (!printing) return;
-    const timer = setTimeout(() => window.print(), 50);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      await waitForImages(printRef.current);
+      if (!cancelled) window.print();
+    }, 50);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [printing]);
 
   useEffect(() => {
@@ -65,22 +108,47 @@ export default function HomeroomLogListPage() {
     }
   }
 
-  if (loading) return <LoadingState />;
-  if (error || !data) return <ErrorState onRetry={refetch} />;
+  if (shouldLoad && loading) return <LoadingState />;
+  if (shouldLoad && (error || !data)) return <ErrorState onRetry={refetch} />;
 
   return (
     <div className="space-y-5 print:space-y-0">
       <div className="flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">บันทึกกิจกรรมโฮมรูม</h1>
-          <p className="text-sm text-gray-500">ทั้งหมด {data.length} รายการ</p>
+          <p className="text-sm text-gray-500">{data ? `ทั้งหมด ${data.length} รายการ` : 'โปรดเลือกสาขาวิชาหรือกลุ่มเรียนเพื่อแสดงข้อมูล'}</p>
         </div>
-        <Link to="/homeroom/new">
-          <Button variant="primary">+ บันทึกใหม่</Button>
-        </Link>
+        {!overview && (
+          <Link to="/homeroom/new">
+            <Button variant="primary">+ บันทึกใหม่</Button>
+          </Link>
+        )}
       </div>
 
-      {data.length === 0 ? (
+      {overview && (
+        <div className="grid grid-cols-2 gap-2 print:hidden">
+          <SearchableSelect
+            options={departmentOptions.map((d) => ({ value: d, label: d }))}
+            value={deptFilter}
+            onChange={setDeptFilter}
+            placeholder="ทุกสาขาวิชา"
+            allLabel="ทุกสาขาวิชา"
+            allValue={ALL}
+          />
+          <SearchableSelect
+            options={classOptions}
+            value={classFilter}
+            onChange={setClassFilter}
+            placeholder="ทุกกลุ่มเรียน"
+            allLabel="ทุกกลุ่มเรียน"
+            allValue={ALL}
+          />
+        </div>
+      )}
+
+      {!data ? (
+        <EmptyState title="โปรดเลือกสาขาวิชาหรือกลุ่มเรียน" description="เลือกจากเมนูด้านบนก่อนเริ่มดูบันทึกกิจกรรมโฮมรูม" />
+      ) : data.length === 0 ? (
         <EmptyState
           title="ยังไม่มีบันทึกกิจกรรมโฮมรูม"
           description="เริ่มบันทึกการพบนักเรียนในคาบโฮมรูมครั้งแรกของคุณ"
@@ -107,22 +175,26 @@ export default function HomeroomLogListPage() {
                     >
                       <Icon name="printer" className="h-4 w-4" />
                     </button>
-                    <Link
-                      to={`/homeroom/${log.id}/edit`}
-                      title="แก้ไข"
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200"
-                    >
-                      <Icon name="pencil" className="h-4 w-4" />
-                    </Link>
-                    <button
-                      type="button"
-                      title="ลบ"
-                      disabled={deletingId === log.id}
-                      onClick={() => handleDelete(log)}
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-close-100 text-close-700 hover:bg-close-200 disabled:opacity-50"
-                    >
-                      <Icon name="trash" className="h-4 w-4" />
-                    </button>
+                    {!overview && (
+                      <>
+                        <Link
+                          to={`/homeroom/${log.id}/edit`}
+                          title="แก้ไข"
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200"
+                        >
+                          <Icon name="pencil" className="h-4 w-4" />
+                        </Link>
+                        <button
+                          type="button"
+                          title="ลบ"
+                          disabled={deletingId === log.id}
+                          onClick={() => handleDelete(log)}
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-close-100 text-close-700 hover:bg-close-200 disabled:opacity-50"
+                        >
+                          <Icon name="trash" className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -155,7 +227,7 @@ export default function HomeroomLogListPage() {
 
       {/* Print-only: official บันทึกข้อความ (memo) mirroring the college's paper form. */}
       {printing && printLog && (
-        <div className="hidden print:block text-sm leading-relaxed">
+        <div ref={printRef} className="hidden print:block text-sm leading-relaxed">
           <div className="relative flex items-center justify-center">
             <img
               src={`${import.meta.env.BASE_URL}300px-Thai_government_Garuda.jpg`}
@@ -171,7 +243,7 @@ export default function HomeroomLogListPage() {
               {printLog.departmentName ? `แผนกวิชา${printLog.departmentName}` : ''} วิทยาลัยเทคนิคระยอง
             </span>
           </div>
-          <div className="mt-1 flex items-baseline gap-1">
+          <div className="mt-1 flex items-end gap-1">
             <span className="shrink-0">ที่</span>
             <span className="flex-1 border-b border-black">{printLog.docNumber || ' '}</span>
             <span className="shrink-0">วันที่</span>
@@ -201,18 +273,22 @@ export default function HomeroomLogListPage() {
             คน ขาด {printLog.absentStudents.length} คน มีรายละเอียดการดูแลนักเรียน และการให้คำปรึกษา ดังนี้
           </p>
 
-          <p className="mt-3">1. เรื่องที่ปรึกษา / คำแนะนำ / ปัญหาที่พบและการแก้ไข การแต่งกาย การมาเรียน</p>
-          <p className="indent-8 text-justify">{printLog.detail || '-'}</p>
+          <div className="mt-3">
+            <p className="indent-8 text-justify">1. เรื่องที่ปรึกษา / คำแนะนำ / ปัญหาที่พบและการแก้ไข การแต่งกาย การมาเรียน</p>
+            <p className="indent-16 text-justify">{printLog.detail || '-'}</p>
+          </div>
 
-          <p className="mt-3">2. รายชื่อนักเรียนที่ขาด</p>
-          <p className="indent-8 text-justify">
-            {printLog.absentStudents.length > 0 ? printLog.absentStudents.map((s) => s.studentName).join(', ') : '-ไม่มี-'}
-          </p>
+          <div className="mt-3">
+            <p className="indent-8 text-justify">2. รายชื่อนักเรียนที่ขาด</p>
+            <p className="indent-16 text-justify">
+              {printLog.absentStudents.length > 0 ? printLog.absentStudents.map((s) => s.studentName).join(', ') : '-ไม่มี-'}
+            </p>
+          </div>
 
-          <p className="mt-3">จึงเรียนมาเพื่อโปรดพิจารณา</p>
+          <p className="mt-3 indent-8 text-justify">จึงเรียนมาเพื่อโปรดพิจารณา</p>
 
           <div className="mt-10 flex justify-end">
-            <div className="text-center">
+            <div className="w-64 text-center">
               <p>ลงชื่อ.............................................</p>
               <p className="mt-1">({printLog.advisorTeacherName || '.............................................'})</p>
               <p>ครูที่ปรึกษา</p>
@@ -220,7 +296,7 @@ export default function HomeroomLogListPage() {
           </div>
 
           <div className="mt-8 flex justify-end">
-            <div className="text-center">
+            <div className="w-64 text-center">
               <p>ลงชื่อ.............................................</p>
               <p className="mt-1">({printLog.deptHeadName || '.............................................'})</p>
               <p>หัวหน้าแผนกวิชา</p>
@@ -228,15 +304,15 @@ export default function HomeroomLogListPage() {
           </div>
 
           <div className="mt-8 flex justify-between">
-            <div className="text-center">
+            <div className="w-64 text-center">
               <p>ลงชื่อ.............................................</p>
               <p className="mt-1">({printLog.advisorHeadName || '.............................................'})</p>
-              <p>หัวหน้างานครูที่ปรึกษา</p>
+              <p>หัวหน้างานครูที่ปรึกษาและการแนะแนว</p>
             </div>
-            <div className="text-center">
+            <div className="w-64 text-center">
               <p>ลงชื่อ.............................................</p>
               <p className="mt-1">({printLog.deputyDirectorName || '.............................................'})</p>
-              <p>รองผู้อำนวยการฝ่ายพัฒนากิจการนักเรียน</p>
+              <p>รองผู้อำนวยการฝ่ายกิจการนักเรียนนักศึกษา</p>
             </div>
           </div>
 

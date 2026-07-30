@@ -29,7 +29,7 @@ export function DropoutFollowUpPrintDocument({ record }: { record: DropoutFollow
           {record.departmentName ? `แผนกวิชา${record.departmentName}` : ''} วิทยาลัยเทคนิคระยอง
         </span>
       </div>
-      <div className="mt-1 flex items-baseline gap-1">
+      <div className="mt-1 flex items-end gap-1">
         <span className="shrink-0">ที่</span>
         <span className="flex-1 border-b border-black">{' '}</span>
         <span className="shrink-0">วันที่</span>
@@ -38,7 +38,7 @@ export function DropoutFollowUpPrintDocument({ record }: { record: DropoutFollow
       <div className="mt-1 flex items-baseline gap-1">
         <span className="shrink-0 font-bold">เรื่อง</span>
         <span className="flex-1 border-b border-black">
-          รายงานผลการติดตามผู้เรียนเพื่อแก้ปัญหาออกกลางคัน กรณี{record.studentName || ' '}
+          รายงานผลการติดตามผู้เรียนเพื่อแก้ปัญหาออกกลางคัน กรณี {record.studentName || ' '}
         </span>
       </div>
 
@@ -52,16 +52,11 @@ export function DropoutFollowUpPrintDocument({ record }: { record: DropoutFollow
         ด้วยผู้เรียนชื่อ {record.studentName || '.....................'} ระดับชั้น {record.className || '.....................'}{' '}
         สาขาวิชา{record.departmentName || '.....................'} ได้ขาดเรียนเป็นจำนวน{' '}
         {record.absentDays || '.....................'} วัน เนื่องจาก {record.absentReason || '.....................'} นั้น
-      </p>
-      <p className="mt-3 indent-8 text-justify">
         ข้าพเจ้าครูที่ปรึกษาได้ดำเนินการติดตามผู้เรียนผ่านช่องทาง {describeContactChannels(record.studentContactChannels)} และได้ติดต่อผู้ปกครองผ่านช่องทาง{' '}
         {describeContactChannels(record.parentContactChannels)} พร้อมแนบหลักฐานประกอบการติดตามไว้แล้ว
       </p>
       <p className="mt-3 indent-8 text-justify">
-        สรุปผลการติดตามผู้เรียน {record.followUpSummary || '-'}
-      </p>
-      <p className="mt-3">
-        ผลการติดตาม{' '}
+        สรุปผลการติดตามผู้เรียน {record.followUpSummary || '-'} ผลการติดตาม{' '}
         {['ติดตามผู้เรียนสำเร็จ', 'ติดตามผู้เรียนไม่สำเร็จ'].map((opt) => (
           <span key={opt} className="mr-4">
             {record.followUpResult === opt ? '☑' : '☐'} {opt}
@@ -69,7 +64,7 @@ export function DropoutFollowUpPrintDocument({ record }: { record: DropoutFollow
         ))}
       </p>
 
-      <p className="mt-3">จึงเรียนมาเพื่อโปรดทราบ</p>
+      <p className="mt-3 indent-8 text-justify">จึงเรียนมาเพื่อโปรดทราบ</p>
 
       <div className="mt-10 flex justify-end">
         <div className="text-center">
@@ -78,6 +73,38 @@ export function DropoutFollowUpPrintDocument({ record }: { record: DropoutFollow
           <p>ครูที่ปรึกษา</p>
         </div>
       </div>
+
+      {(record.studentContactEvidence.length > 0 || record.parentContactEvidence.length > 0) && (
+        <div className="break-before-page">
+          <h2 className="text-center text-base font-bold">ภาพประกอบการติดตามผู้เรียน</h2>
+
+          {record.studentContactEvidence.length > 0 && (
+            <>
+              <h3 className="mt-4 text-sm font-semibold">หลักฐานในการติดตามผู้เรียน</h3>
+              <div className="mt-2 flex flex-wrap justify-center gap-3">
+                {record.studentContactEvidence.map((url) => (
+                  <div key={url} className="border border-black p-1">
+                    <img src={url} alt="" className="h-64 w-auto object-cover" />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {record.parentContactEvidence.length > 0 && (
+            <>
+              <h3 className="mt-6 text-sm font-semibold">หลักฐานในการติดต่อผู้ปกครอง</h3>
+              <div className="mt-2 flex flex-wrap justify-center gap-3">
+                {record.parentContactEvidence.map((url) => (
+                  <div key={url} className="border border-black p-1">
+                    <img src={url} alt="" className="h-64 w-auto object-cover" />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 }

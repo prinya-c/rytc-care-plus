@@ -31,15 +31,18 @@ const HomeroomLogFormPage = lazy(() => import('./features/homeroom/HomeroomLogFo
 const HomeroomLogDetailPage = lazy(() => import('./features/homeroom/HomeroomLogDetailPage'));
 const DropoutFollowUpListPage = lazy(() => import('./features/dropoutFollowUp/DropoutFollowUpListPage'));
 const DropoutFollowUpFormPage = lazy(() => import('./features/dropoutFollowUp/DropoutFollowUpFormPage'));
+const ReferralListPage = lazy(() => import('./features/referrals/ReferralListPage'));
 const ReferralFormPage = lazy(() => import('./features/referrals/ReferralFormPage'));
 const ReferralInboxPage = lazy(() => import('./features/referrals/ReferralInboxPage'));
 const ReferralDetailPage = lazy(() => import('./features/referrals/ReferralDetailPage'));
 const ReportsPage = lazy(() => import('./features/reports/ReportsPage'));
 const UserManagementPage = lazy(() => import('./features/users/UserManagementPage'));
+const SignatorySettingsPage = lazy(() => import('./features/settings/SignatorySettingsPage'));
 
 const STAFF_ROLES = ['admin', 'advisor_teacher', 'advisor_staff'] as const;
-const OFFICER_ROLES = ['admin', 'guidance_staff', 'scholarship_staff', 'rehabilitation_staff'] as const;
+const OFFICER_ROLES = ['advisor_staff', 'guidance_staff', 'scholarship_staff', 'discipline_staff', 'rehabilitation_staff'] as const;
 const MANAGE_ROLES = ['admin', 'advisor_staff'] as const;
+const ADMIN_ONLY_ROLES = ['admin'] as const;
 
 export default function App() {
   return (
@@ -87,7 +90,10 @@ export default function App() {
                         <Route path="/dropout-follow-up" element={<DropoutFollowUpListPage />} />
                         <Route path="/dropout-follow-up/new" element={<DropoutFollowUpFormPage />} />
                         <Route path="/dropout-follow-up/:id/edit" element={<DropoutFollowUpFormPage />} />
+                        <Route path="/referrals" element={<ReferralListPage />} />
+                        <Route path="/referrals/new" element={<ReferralFormPage />} />
                         <Route path="/referrals/new/:studentId" element={<ReferralFormPage />} />
+                        <Route path="/referrals/:id/edit" element={<ReferralFormPage />} />
                       </Route>
 
                       <Route element={<ProtectedRoute allowedRoles={[...OFFICER_ROLES]} />}>
@@ -97,7 +103,11 @@ export default function App() {
 
                       <Route element={<ProtectedRoute allowedRoles={[...MANAGE_ROLES]} />}>
                         <Route path="/reports" element={<ReportsPage />} />
+                      </Route>
+
+                      <Route element={<ProtectedRoute allowedRoles={[...ADMIN_ONLY_ROLES]} />}>
                         <Route path="/users" element={<UserManagementPage />} />
+                        <Route path="/settings/signatories" element={<SignatorySettingsPage />} />
                       </Route>
 
                       <Route path="/" element={<Navigate to="/dashboard" replace />} />

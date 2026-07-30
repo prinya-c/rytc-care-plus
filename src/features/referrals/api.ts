@@ -1,5 +1,5 @@
 import { where, orderBy, getDocs, query, serverTimestamp } from 'firebase/firestore';
-import { cpCollection, createDoc, getById, listAll, patchDoc } from '../../lib/firestore';
+import { cpCollection, createDoc, getById, listAll, patchDoc, removeDoc } from '../../lib/firestore';
 import type { Referral, ReferralStatus, TargetWork } from '../../types';
 
 export async function fetchReferralById(id: string) {
@@ -42,4 +42,12 @@ export async function receiveReferral(id: string, receivedBy: string) {
 
 export async function updateReferralStatus(id: string, status: ReferralStatus) {
   return patchDoc<Referral>('referrals', id, { status });
+}
+
+export async function updateReferral(id: string, data: Partial<Referral>) {
+  return patchDoc<Referral>('referrals', id, data);
+}
+
+export async function deleteReferral(id: string) {
+  return removeDoc('referrals', id);
 }

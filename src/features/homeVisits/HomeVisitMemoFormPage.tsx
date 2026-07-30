@@ -4,29 +4,16 @@ import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchHomeVisitsByTeacher, fetchAllHomeVisits } from './api';
 import { fetchHomeVisitMemoById, createHomeVisitMemo, updateHomeVisitMemo } from './memoApi';
-import { fetchAllStudents, fetchStudentsByClasses } from '../students/api';
+import { fetchSignatorySettings } from '../settings/api';
+import { fetchAllStudents, fetchStudentsByClasses, fetchAllTeachers } from '../students/api';
 import { canViewCollegeOverview } from '../../utils/rbac';
 import { LoadingState, ErrorState } from '../../components/ui/States';
-import { Field, Input, Button } from '../../components/ui/Form';
+import { Field, Input, Select, Button } from '../../components/ui/Form';
+import { TeacherCombobox } from '../../components/ui/TeacherCombobox';
 import { useToast } from '../../components/ui/Toast';
 
-const SIGNER_STORAGE_KEY = 'rytc-care-plus:home-visit-memo-signers';
-
-interface SignerNames {
-  deptHeadName: string;
-  advisorHeadName: string;
-  deputyDirectorName: string;
-}
-
-function loadStoredSigners(): SignerNames {
-  try {
-    const raw = localStorage.getItem(SIGNER_STORAGE_KEY);
-    if (!raw) return { deptHeadName: '', advisorHeadName: '', deputyDirectorName: '' };
-    return { deptHeadName: '', advisorHeadName: '', deputyDirectorName: '', ...JSON.parse(raw) };
-  } catch {
-    return { deptHeadName: '', advisorHeadName: '', deputyDirectorName: '' };
-  }
-}
+const DEPT_HEAD_STORAGE_KEY = 'rytc-care-plus:home-visit-memo-dept-head';
+const currentAcademicYear = String(new Date().getFullYear() + 543);
 
 export default function HomeVisitMemoFormPage() {
   const { memoId } = useParams();
@@ -55,7 +42,9 @@ export default function HomeVisitMemoFormPage() {
   const [roundNumber, setRoundNumber] = useState('1');
   const [level, setLevel] = useState('');
   const [memoDate, setMemoDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [signers, setSigners] = useState<SignerNames>(loadStoredSigners);
+  const [academicYear, setAcademicYear] = useState(currentAcademicYear);
+  const [semester, setSemester] = useState('1');
+  const [deptHeadName, setDeptHeadName] = useState(() => localStorage.getItem(DEPT_HEAD_STORAGE_KEY) ?? '');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -66,11 +55,9 @@ export default function HomeVisitMemoFormPage() {
       setRoundNumber(memo.roundNumber);
       setLevel(memo.level);
       setMemoDate(memo.memoDate);
-      setSigners({
-        deptHeadName: memo.deptHeadName,
-        advisorHeadName: memo.advisorHeadName,
-        deputyDirectorName: memo.deputyDirectorName,
-      });
+      setAcademicYear(memo.academicYear || currentAcademicYear);
+      setSemester(memo.semester || '1');
+      setDeptHeadName(memo.deptHeadName);
     } else if (!level) {
       setLevel(data.classNames.join(', '));
     }
@@ -78,8 +65,19 @@ export default function HomeVisitMemoFormPage() {
   }, [data]);
 
   useEffect(() => {
-    localStorage.setItem(SIGNER_STORAGE_KEY, JSON.stringify(signers));
-  }, [signers]);
+    localStorage.setItem(DEPT_HEAD_STORAGE_KEY, deptHeadName);
+  }, [deptHeadName]);
+
+  // หัวหน้างานครูที่ปรึกษาและการแนะแนว / รองผู้อำนวยการฝ่ายกิจการนักเรียนนักศึกษา
+  // เปลี่ยนบ่อย จึงดึงจากการตั้งค่ากลางตามภาคเรียน/ปีการศึกษาที่เลือก แทนการพิมพ์เอง
+  const { data: signatorySettings } = useAsync(
+    () => fetchSignatorySettings(academicYear, semester),
+    [academicYear, semester],
+  );
+  const advisorHeadName = signatorySettings?.advisorHeadName || data?.existing?.advisorHeadName || '';
+  const deputyDirectorName = signatorySettings?.deputyDirectorName || data?.existing?.deputyDirectorName || '';
+
+  const { data: teachers } = useAsync(fetchAllTeachers, []);
 
   if (loading) return <LoadingState />;
   if (error || !data) return <ErrorState />;
@@ -97,11 +95,13 @@ export default function HomeVisitMemoFormPage() {
         roundNumber,
         level,
         memoDate,
+        academicYear,
+        semester,
         totalStudents: data.totalStudents,
         visitedCount: data.visitedCount,
-        deptHeadName: signers.deptHeadName,
-        advisorHeadName: signers.advisorHeadName,
-        deputyDirectorName: signers.deputyDirectorName,
+        deptHeadName,
+        advisorHeadName,
+        deputyDirectorName,
         status: 'submitted' as const,
         createdBy: data.existing?.createdBy ?? profile.uid,
       };
@@ -109,12 +109,11 @@ export default function HomeVisitMemoFormPage() {
       if (isEdit && memoId) {
         await updateHomeVisitMemo(memoId, payload);
         showToast('บันทึกข้อความเยี่ยมบ้านสำเร็จ');
-        navigate(`/home-visits/memo/${memoId}`);
       } else {
-        const id = await createHomeVisitMemo(payload);
+        await createHomeVisitMemo(payload);
         showToast('บันทึกข้อความเยี่ยมบ้านสำเร็จ');
-        navigate(`/home-visits/memo/${id}`);
       }
+      navigate('/home-visits/memo');
     } catch {
       showToast('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error');
     } finally {
@@ -142,14 +141,23 @@ export default function HomeVisitMemoFormPage() {
         <Field label="ออกเยี่ยมบ้านเป็นครั้งที่" required>
           <Input value={roundNumber} onChange={(e) => setRoundNumber(e.target.value)} className="max-w-[6rem]" />
         </Field>
+        <Field label="ภาคเรียนที่">
+          <Select value={semester} onChange={(e) => setSemester(e.target.value)}>
+            <option value="1">ภาคเรียนที่ 1</option>
+            <option value="2">ภาคเรียนที่ 2</option>
+          </Select>
+        </Field>
+        <Field label="ปีการศึกษา">
+          <Input value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} />
+        </Field>
         <Field label="หัวหน้าแผนกวิชา">
-          <Input value={signers.deptHeadName} onChange={(e) => setSigners({ ...signers, deptHeadName: e.target.value })} />
+          <TeacherCombobox teachers={teachers ?? []} value={deptHeadName} onChange={setDeptHeadName} />
         </Field>
-        <Field label="หัวหน้างานครูที่ปรึกษา">
-          <Input value={signers.advisorHeadName} onChange={(e) => setSigners({ ...signers, advisorHeadName: e.target.value })} />
+        <Field label="หัวหน้างานครูที่ปรึกษาและการแนะแนว" hint="ตั้งค่าได้ที่เมนู “ตั้งค่า”">
+          <Input value={advisorHeadName} disabled placeholder="ยังไม่ได้ตั้งค่าสำหรับภาคเรียนนี้" />
         </Field>
-        <Field label="รองผู้อำนวยการฝ่ายพัฒนากิจการนักเรียน นักศึกษา">
-          <Input value={signers.deputyDirectorName} onChange={(e) => setSigners({ ...signers, deputyDirectorName: e.target.value })} />
+        <Field label="รองผู้อำนวยการฝ่ายกิจการนักเรียนนักศึกษา" hint="ตั้งค่าได้ที่เมนู “ตั้งค่า”">
+          <Input value={deputyDirectorName} disabled placeholder="ยังไม่ได้ตั้งค่าสำหรับภาคเรียนนี้" />
         </Field>
       </div>
 
@@ -167,7 +175,7 @@ export default function HomeVisitMemoFormPage() {
       <div className="fixed inset-x-0 bottom-16 z-30 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur lg:bottom-0 lg:left-64">
         <div className="mx-auto flex max-w-6xl justify-end gap-2">
           <Button variant="primary" loading={saving} disabled={!roundNumber} onClick={handleSave}>
-            บันทึกและดูตัวอย่างเพื่อพิมพ์
+            บันทึก
           </Button>
         </div>
       </div>

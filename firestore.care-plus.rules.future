@@ -66,6 +66,7 @@ service cloud.firestore {
     function isOfficerFor(targetWork) {
       return (targetWork == 'guidance' && hasRole(['guidance_staff']))
         || (targetWork == 'scholarship' && hasRole(['scholarship_staff']))
+        || (targetWork == 'discipline' && hasRole(['discipline_staff']))
         || (targetWork == 'rehabilitation' && hasRole(['rehabilitation_staff']));
     }
 
@@ -181,6 +182,17 @@ service cloud.firestore {
       allow create: if isOfficerFor(request.resource.data.targetWork)
         && request.resource.data.closedBy == request.auth.uid;
       allow update: if isOverviewRole() || isOfficerFor(resource.data.targetWork);
+      allow delete: if isAdmin();
+    }
+
+    // ---- signatory-settings ----------------------------------------------
+    // Per (academicYear, semester) names for the two signatories printed on
+    // every memo. Every active user may read (needed to auto-fill print
+    // previews); only admin/advisor_staff may change them.
+
+    match /signatory-settings/{settingId} {
+      allow read: if isActiveUser();
+      allow create, update: if isOverviewRole();
       allow delete: if isAdmin();
     }
 

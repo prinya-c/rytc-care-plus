@@ -25,7 +25,7 @@ export default function AppLayout() {
   return (
     <div className="min-h-screen bg-gray-50 lg:flex">
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-gray-200 lg:bg-white">
+      <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:flex-col lg:border-r lg:border-gray-200 lg:bg-white">
         <div className="flex h-16 items-center gap-2 border-b border-gray-100 px-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
             C+

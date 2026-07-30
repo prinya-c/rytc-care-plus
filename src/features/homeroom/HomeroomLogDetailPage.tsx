@@ -1,21 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchHomeroomLogById } from './api';
 import { formatThaiDate } from '../../utils/thaiDate';
+import { waitForImages } from '../../utils/waitForImages';
 import { LoadingState, ErrorState } from '../../components/ui/States';
 import { Button } from '../../components/ui/Form';
 
 export default function HomeroomLogDetailPage() {
   const { logId } = useParams();
   const [printing, setPrinting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const { data: log, loading, error, refetch } = useAsync(() => fetchHomeroomLogById(logId!), [logId]);
 
   useEffect(() => {
     if (!printing) return;
-    const timer = setTimeout(() => window.print(), 50);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      await waitForImages(printRef.current);
+      if (!cancelled) window.print();
+    }, 50);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [printing]);
 
   useEffect(() => {
@@ -97,7 +106,7 @@ export default function HomeroomLogDetailPage() {
 
       {/* Print-only: official บันทึกข้อความ (memo) mirroring the college's paper form. */}
       {printing && (
-        <div className="hidden print:block text-sm leading-relaxed">
+        <div ref={printRef} className="hidden print:block text-sm leading-relaxed">
           <div className="relative flex items-center justify-center">
             <img
               src={`${import.meta.env.BASE_URL}300px-Thai_government_Garuda.jpg`}
@@ -113,7 +122,7 @@ export default function HomeroomLogDetailPage() {
               {log.departmentName ? `แผนกวิชา${log.departmentName}` : ''} วิทยาลัยเทคนิคระยอง
             </span>
           </div>
-          <div className="mt-1 flex items-baseline gap-1">
+          <div className="mt-1 flex items-end gap-1">
             <span className="shrink-0">ที่</span>
             <span className="flex-1 border-b border-black">{log.docNumber || ' '}</span>
             <span className="shrink-0">วันที่</span>
@@ -142,18 +151,22 @@ export default function HomeroomLogDetailPage() {
             มีรายละเอียดการดูแลนักเรียน และการให้คำปรึกษา ดังนี้
           </p>
 
-          <p className="mt-3">1. เรื่องที่ปรึกษา / คำแนะนำ / ปัญหาที่พบและการแก้ไข การแต่งกาย การมาเรียน</p>
-          <p className="indent-8 text-justify">{log.detail || '-'}</p>
+          <div className="mt-3">
+            <p className="indent-8 text-justify">1. เรื่องที่ปรึกษา / คำแนะนำ / ปัญหาที่พบและการแก้ไข การแต่งกาย การมาเรียน</p>
+            <p className="indent-16 text-justify">{log.detail || '-'}</p>
+          </div>
 
-          <p className="mt-3">2. รายชื่อนักเรียนที่ขาด</p>
-          <p className="indent-8 text-justify">
-            {log.absentStudents.length > 0 ? log.absentStudents.map((s) => s.studentName).join(', ') : '-ไม่มี-'}
-          </p>
+          <div className="mt-3">
+            <p className="indent-8 text-justify">2. รายชื่อนักเรียนที่ขาด</p>
+            <p className="indent-16 text-justify">
+              {log.absentStudents.length > 0 ? log.absentStudents.map((s) => s.studentName).join(', ') : '-ไม่มี-'}
+            </p>
+          </div>
 
-          <p className="mt-3">จึงเรียนมาเพื่อโปรดพิจารณา</p>
+          <p className="mt-3 indent-8 text-justify">จึงเรียนมาเพื่อโปรดพิจารณา</p>
 
           <div className="mt-10 flex justify-end">
-            <div className="text-center">
+            <div className="w-64 text-center">
               <p>ลงชื่อ.............................................</p>
               <p className="mt-1">({log.advisorTeacherName || '.............................................'})</p>
               <p>ครูที่ปรึกษา</p>
@@ -161,7 +174,7 @@ export default function HomeroomLogDetailPage() {
           </div>
 
           <div className="mt-8 flex justify-end">
-            <div className="text-center">
+            <div className="w-64 text-center">
               <p>ลงชื่อ.............................................</p>
               <p className="mt-1">({log.deptHeadName || '.............................................'})</p>
               <p>หัวหน้าแผนกวิชา</p>
@@ -169,15 +182,15 @@ export default function HomeroomLogDetailPage() {
           </div>
 
           <div className="mt-8 flex justify-between">
-            <div className="text-center">
+            <div className="w-64 text-center">
               <p>ลงชื่อ.............................................</p>
               <p className="mt-1">({log.advisorHeadName || '.............................................'})</p>
-              <p>หัวหน้างานครูที่ปรึกษา</p>
+              <p>หัวหน้างานครูที่ปรึกษาและการแนะแนว</p>
             </div>
-            <div className="text-center">
+            <div className="w-64 text-center">
               <p>ลงชื่อ.............................................</p>
               <p className="mt-1">({log.deputyDirectorName || '.............................................'})</p>
-              <p>รองผู้อำนวยการฝ่ายพัฒนากิจการนักเรียน</p>
+              <p>รองผู้อำนวยการฝ่ายกิจการนักเรียนนักศึกษา</p>
             </div>
           </div>
 

@@ -6,6 +6,7 @@ import { fetchStudentByStudentId, studentDisplayName, studentSubtitle } from '..
 import { fetchHomeVisitById, createHomeVisit, updateHomeVisit } from './api';
 import { uploadHomeVisitImage } from '../../lib/storage';
 import { HomeVisitPrintDocument } from './HomeVisitPrintDocument';
+import { waitForImages } from '../../utils/waitForImages';
 import type { BehaviorInfo, FamilyInfo, StudentInfo } from '../../types';
 import { LoadingState, ErrorState, Spinner } from '../../components/ui/States';
 import { Section, Field, Input, Textarea, Select, Button } from '../../components/ui/Form';
@@ -100,6 +101,7 @@ export default function HomeVisitFormPage() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mapInputRef = useRef<HTMLInputElement>(null);
 
@@ -135,8 +137,15 @@ export default function HomeVisitFormPage() {
 
   useEffect(() => {
     if (!printing) return;
-    const timer = setTimeout(() => window.print(), 50);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      await waitForImages(printRef.current);
+      if (!cancelled) window.print();
+    }, 50);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [printing]);
 
   useEffect(() => {
@@ -225,7 +234,7 @@ export default function HomeVisitFormPage() {
         });
       }
       showToast(status === 'draft' ? 'บันทึกแบบร่างเรียบร้อยแล้ว' : 'บันทึกการเยี่ยมบ้านสำเร็จ');
-      navigate('/students');
+      navigate('/home-visits');
     } catch {
       showToast('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error');
     } finally {
@@ -413,7 +422,7 @@ export default function HomeVisitFormPage() {
         </div>
       </div>
 
-      {printing && existing && <HomeVisitPrintDocument visit={existing} student={student} />}
+      <div ref={printRef}>{printing && existing && <HomeVisitPrintDocument visit={existing} student={student} />}</div>
     </div>
   );
 }

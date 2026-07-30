@@ -17,6 +17,7 @@ const ROLE_OPTIONS: UserRole[] = [
   'advisor_staff',
   'guidance_staff',
   'scholarship_staff',
+  'discipline_staff',
   'rehabilitation_staff',
   'admin',
 ];

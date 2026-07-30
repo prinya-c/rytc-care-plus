@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
-import { fetchStudentsByClasses, studentDisplayName } from '../students/api';
+import { fetchStudentsByClasses, fetchAllTeachers, studentDisplayName } from '../students/api';
 import { fetchHomeroomLogById, createHomeroomLog, updateHomeroomLog } from './api';
+import { fetchSignatorySettings } from '../settings/api';
 import { uploadHomeroomLogImage } from '../../lib/storage';
 import type { AbsentStudentEntry } from '../../types';
 import { LoadingState, ErrorState, EmptyState, Spinner } from '../../components/ui/States';
 import { Section, Field, Input, Textarea, Select, Button, Checkbox } from '../../components/ui/Form';
+import { TeacherCombobox } from '../../components/ui/TeacherCombobox';
 import { useToast } from '../../components/ui/Toast';
 
 export default function HomeroomLogFormPage() {
@@ -27,8 +29,6 @@ export default function HomeroomLogFormPage() {
   const [detail, setDetail] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [deptHeadName, setDeptHeadName] = useState('');
-  const [advisorHeadName, setAdvisorHeadName] = useState('');
-  const [deputyDirectorName, setDeputyDirectorName] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,6 +43,8 @@ export default function HomeroomLogFormPage() {
     return { roster, existing };
   }, [logId, isEdit, profile?.uid]);
 
+  const { data: teachers } = useAsync(fetchAllTeachers, []);
+
   useEffect(() => {
     if (data?.existing) {
       const log = data.existing;
@@ -56,10 +58,18 @@ export default function HomeroomLogFormPage() {
       setDetail(log.detail);
       setImages(log.images);
       setDeptHeadName(log.deptHeadName);
-      setAdvisorHeadName(log.advisorHeadName);
-      setDeputyDirectorName(log.deputyDirectorName);
     }
   }, [data]);
+
+  // ผู้ลงนาม 2 ตำแหน่งนี้เปลี่ยนบ่อย จึงดึงจากการตั้งค่ากลาง (ตั้งค่า > ตั้งค่าชื่อผู้ลงนาม)
+  // ตามปีการศึกษา/ภาคเรียนที่เลือก แทนการให้ครูพิมพ์เอง — ถ้ายังไม่มีการตั้งค่าไว้
+  // สำหรับช่วงนั้น จะใช้ชื่อที่เคยบันทึกไว้ในบันทึกนี้เป็นค่าสำรอง (สำหรับบันทึกเก่าก่อนมีฟีเจอร์นี้)
+  const { data: signatorySettings } = useAsync(
+    () => fetchSignatorySettings(academicYear, semester),
+    [academicYear, semester],
+  );
+  const advisorHeadName = signatorySettings?.advisorHeadName || data?.existing?.advisorHeadName || '';
+  const deputyDirectorName = signatorySettings?.deputyDirectorName || data?.existing?.deputyDirectorName || '';
 
   const classOptions = useMemo(() => {
     if (!data) return [];
@@ -163,12 +173,11 @@ export default function HomeroomLogFormPage() {
       if (isEdit && logId) {
         await updateHomeroomLog(logId, payload);
         showToast('บันทึกกิจกรรมโฮมรูมสำเร็จ');
-        navigate(`/homeroom/${logId}`);
       } else {
-        const id = await createHomeroomLog(payload);
+        await createHomeroomLog(payload);
         showToast('บันทึกกิจกรรมโฮมรูมสำเร็จ');
-        navigate(`/homeroom/${id}`);
       }
+      navigate('/homeroom');
     } catch {
       showToast('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error');
     } finally {
@@ -276,16 +285,16 @@ export default function HomeroomLogFormPage() {
           </div>
         </Section>
 
-        <Section title="ผู้ลงนาม" description="กรอกชื่อผู้ลงนามเพื่อใช้พิมพ์บันทึกข้อความ">
+        <Section title="ผู้ลงนาม" description="หัวหน้าแผนกวิชากรอกเอง ส่วนอีก 2 ตำแหน่งดึงจากเมนู “ตั้งค่า” ตามภาคเรียน/ปีการศึกษาที่เลือกไว้ด้านบน">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="หัวหน้าแผนกวิชา">
-              <Input value={deptHeadName} onChange={(e) => setDeptHeadName(e.target.value)} />
+              <TeacherCombobox teachers={teachers ?? []} value={deptHeadName} onChange={setDeptHeadName} />
             </Field>
-            <Field label="หัวหน้างานครูที่ปรึกษา">
-              <Input value={advisorHeadName} onChange={(e) => setAdvisorHeadName(e.target.value)} />
+            <Field label="หัวหน้างานครูที่ปรึกษาและการแนะแนว">
+              <Input value={advisorHeadName} disabled placeholder="ยังไม่ได้ตั้งค่าสำหรับภาคเรียนนี้" />
             </Field>
-            <Field label="รองผู้อำนวยการฝ่ายพัฒนากิจการนักเรียน">
-              <Input value={deputyDirectorName} onChange={(e) => setDeputyDirectorName(e.target.value)} />
+            <Field label="รองผู้อำนวยการฝ่ายกิจการนักเรียนนักศึกษา">
+              <Input value={deputyDirectorName} disabled placeholder="ยังไม่ได้ตั้งค่าสำหรับภาคเรียนนี้" />
             </Field>
           </div>
         </Section>
@@ -294,7 +303,7 @@ export default function HomeroomLogFormPage() {
       <div className="fixed inset-x-0 bottom-16 z-30 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur lg:bottom-0 lg:left-64">
         <div className="mx-auto flex max-w-6xl justify-end gap-2">
           <Button variant="primary" loading={saving} disabled={!sessionNumber} onClick={handleSave}>
-            บันทึกและดูตัวอย่างเพื่อพิมพ์
+            บันทึก
           </Button>
         </div>
       </div>

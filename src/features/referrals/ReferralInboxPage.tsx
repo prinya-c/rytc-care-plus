@@ -8,7 +8,14 @@ import { Select, Button } from '../../components/ui/Form';
 import { Badge } from '../../components/ui/Badge';
 import { useToast } from '../../components/ui/Toast';
 import { targetWorkForRole } from '../../utils/rbac';
-import { REFERRAL_PRIORITY_LABEL, REFERRAL_STATUS_LABEL, TARGET_WORK_LABEL, type ReferralStatus, type TargetWork } from '../../types';
+import {
+  REFERRAL_STATUS_LABEL,
+  TARGET_WORK_LABEL,
+  PROBLEM_LABEL,
+  PROBLEM_ORDER,
+  type ReferralStatus,
+  type TargetWork,
+} from '../../types';
 
 const STATUS_TONE: Record<ReferralStatus, 'gray' | 'green' | 'yellow' | 'red' | 'blue'> = {
   sent: 'yellow',
@@ -16,12 +23,6 @@ const STATUS_TONE: Record<ReferralStatus, 'gray' | 'green' | 'yellow' | 'red' | 
   in_progress: 'blue',
   completed: 'green',
   closed: 'gray',
-};
-
-const PRIORITY_TONE: Record<string, 'gray' | 'green' | 'yellow' | 'red'> = {
-  normal: 'gray',
-  urgent: 'yellow',
-  critical: 'red',
 };
 
 export default function ReferralInboxPage() {
@@ -98,12 +99,14 @@ export default function ReferralInboxPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-gray-900">{r.studentName}</p>
                     <Badge tone={STATUS_TONE[r.status]}>{REFERRAL_STATUS_LABEL[r.status]}</Badge>
-                    <Badge tone={PRIORITY_TONE[r.priority]}>{REFERRAL_PRIORITY_LABEL[r.priority]}</Badge>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
                     {r.className} · ส่งต่อโดย {r.referredByName} · {r.referredDate}
                   </p>
-                  <p className="mt-1 line-clamp-2 text-sm text-gray-600">{r.reason}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-gray-600">
+                    {r.problems && PROBLEM_ORDER.filter((key) => r.problems[key]).map((key) => PROBLEM_LABEL[key]).join(', ')}
+                    {r.problemSummary ? ` — ${r.problemSummary}` : ''}
+                  </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
                   {r.status === 'sent' && (
