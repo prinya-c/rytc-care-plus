@@ -60,10 +60,13 @@ export async function registerWithCitizenId(input: RegisterInput): Promise<void>
     teacherId: input.teacherId,
     role: 'advisor_teacher',
     classIds: input.classIds ?? [],
-    // New self-registered accounts start inactive until an admin/advisor_staff
-    // reviews and activates them (prevents anyone who merely knows a
-    // teacher's citizen ID number from getting standing access unchecked).
-    isActive: false,
+    // New self-registered accounts are active immediately — the citizenId
+    // was already verified against out-of/teachers (the college's own
+    // teacher roster) before this function is ever called, so registration
+    // isn't open to arbitrary identities. isActive still exists so an
+    // admin/advisor_staff can suspend an account afterwards from the
+    // จัดการผู้ใช้งาน page.
+    isActive: true,
   });
 }
 
