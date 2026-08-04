@@ -58,7 +58,7 @@ export function HomeVisitMemoPrintDocument({ memo }: { memo: HomeVisitMemo }) {
       <p className="mt-3">จึงเรียนมาเพื่อโปรดพิจารณา</p>
 
       <div className="mt-10 flex justify-end">
-        <div className="text-center">
+        <div className="w-64 text-center">
           <p>ลงชื่อ.............................................</p>
           <p className="mt-1">({memo.advisorTeacherName || '.............................................'})</p>
           <p>ครูที่ปรึกษา</p>
@@ -66,7 +66,7 @@ export function HomeVisitMemoPrintDocument({ memo }: { memo: HomeVisitMemo }) {
       </div>
 
       <div className="mt-8 flex justify-end">
-        <div className="text-center">
+        <div className="w-64 text-center">
           <p>ลงชื่อ.............................................</p>
           <p className="mt-1">({memo.deptHeadName || '.............................................'})</p>
           <p>หัวหน้าแผนกวิชา</p>
@@ -74,12 +74,12 @@ export function HomeVisitMemoPrintDocument({ memo }: { memo: HomeVisitMemo }) {
       </div>
 
       <div className="mt-8 flex justify-between">
-        <div className="text-center">
+        <div className="w-64 text-center">
           <p>ลงชื่อ.............................................</p>
           <p className="mt-1">({memo.advisorHeadName || '.............................................'})</p>
           <p>หัวหน้างานครูที่ปรึกษาและการแนะแนว</p>
         </div>
-        <div className="text-center">
+        <div className="w-64 text-center">
           <p>ลงชื่อ.............................................</p>
           <p className="mt-1">({memo.deputyDirectorName || '.............................................'})</p>
           <p>รองผู้อำนวยการฝ่ายกิจการนักเรียนนักศึกษา</p>
