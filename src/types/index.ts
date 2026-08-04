@@ -501,6 +501,8 @@ export interface SignatorySettings {
   id: string;
   academicYear: string;
   semester: string;
+  /** เลขที่คำสั่งแต่งตั้งคณะกรรมการดำเนินงานโครงการเยี่ยมบ้านสานสัมพันธ์ ครู - ศิษย์ */
+  orderNumber: string;
   advisorHeadName: string;
   deputyDirectorName: string;
   updatedBy: string;

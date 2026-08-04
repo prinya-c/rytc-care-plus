@@ -38,7 +38,6 @@ export default function HomeVisitMemoFormPage() {
     return { existing: null, totalStudents: students.length, visitedCount, classNames };
   }, [memoId, isEdit, overview, teacherId, JSON.stringify(profile?.classIds)]);
 
-  const [orderNumber, setOrderNumber] = useState('');
   const [roundNumber, setRoundNumber] = useState('1');
   const [level, setLevel] = useState('');
   const [memoDate, setMemoDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -51,7 +50,6 @@ export default function HomeVisitMemoFormPage() {
     if (!data) return;
     if (data.existing) {
       const memo = data.existing;
-      setOrderNumber(memo.orderNumber);
       setRoundNumber(memo.roundNumber);
       setLevel(memo.level);
       setMemoDate(memo.memoDate);
@@ -74,6 +72,7 @@ export default function HomeVisitMemoFormPage() {
     () => fetchSignatorySettings(academicYear, semester),
     [academicYear, semester],
   );
+  const orderNumber = signatorySettings?.orderNumber || data?.existing?.orderNumber || '';
   const advisorHeadName = signatorySettings?.advisorHeadName || data?.existing?.advisorHeadName || '';
   const deputyDirectorName = signatorySettings?.deputyDirectorName || data?.existing?.deputyDirectorName || '';
 
@@ -129,8 +128,8 @@ export default function HomeVisitMemoFormPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 rounded-2xl border border-gray-200 bg-white p-4 sm:grid-cols-2">
-        <Field label="เลขที่คำสั่งแต่งตั้งคณะกรรมการ" hint="เช่น 1751/2568">
-          <Input value={orderNumber} onChange={(e) => setOrderNumber(e.target.value)} />
+        <Field label="เลขที่คำสั่งแต่งตั้งคณะกรรมการ" hint="ตั้งค่าได้ที่เมนู “ตั้งค่า”">
+          <Input value={orderNumber} disabled placeholder="ยังไม่ได้ตั้งค่าสำหรับภาคเรียนนี้" />
         </Field>
         <Field label="วันที่ในบันทึกข้อความ">
           <Input type="date" value={memoDate} onChange={(e) => setMemoDate(e.target.value)} />

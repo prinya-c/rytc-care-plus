@@ -19,7 +19,7 @@ export async function fetchAllSignatorySettings() {
 export async function upsertSignatorySettings(
   academicYear: string,
   semester: string,
-  data: { advisorHeadName: string; deputyDirectorName: string; updatedBy: string },
+  data: { orderNumber: string; advisorHeadName: string; deputyDirectorName: string; updatedBy: string },
   { isNew }: { isNew: boolean },
 ) {
   await upsertDocWithId(

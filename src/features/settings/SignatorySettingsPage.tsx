@@ -23,6 +23,7 @@ function SignatoryForm({
   const { showToast } = useToast();
   const [academicYear, setAcademicYear] = useState(initial?.academicYear ?? currentAcademicYear);
   const [semester, setSemester] = useState(initial?.semester ?? '1');
+  const [orderNumber, setOrderNumber] = useState(initial?.orderNumber ?? '');
   const [advisorHeadName, setAdvisorHeadName] = useState(initial?.advisorHeadName ?? '');
   const [deputyDirectorName, setDeputyDirectorName] = useState(initial?.deputyDirectorName ?? '');
   const [saving, setSaving] = useState(false);
@@ -35,7 +36,12 @@ function SignatoryForm({
       await upsertSignatorySettings(
         academicYear,
         semester,
-        { advisorHeadName: advisorHeadName.trim(), deputyDirectorName: deputyDirectorName.trim(), updatedBy: profile.uid },
+        {
+          orderNumber: orderNumber.trim(),
+          advisorHeadName: advisorHeadName.trim(),
+          deputyDirectorName: deputyDirectorName.trim(),
+          updatedBy: profile.uid,
+        },
         { isNew: !isEdit },
       );
       showToast('บันทึกการตั้งค่าสำเร็จ');
@@ -58,6 +64,12 @@ function SignatoryForm({
             <option value="1">ภาคเรียนที่ 1</option>
             <option value="2">ภาคเรียนที่ 2</option>
           </Select>
+        </Field>
+        <Field
+          label="เลขที่คำสั่งแต่งตั้งคณะกรรมการเยี่ยมบ้าน"
+          hint="เช่น 1751/2568 — ใช้ในบันทึกข้อความเยี่ยมบ้านทุกฉบับของภาคเรียนนี้"
+        >
+          <Input value={orderNumber} onChange={(e) => setOrderNumber(e.target.value)} placeholder="เช่น 1751/2568" />
         </Field>
         <Field label="หัวหน้างานครูที่ปรึกษาและการแนะแนว" hint="ชื่อที่จะแสดงในเอกสารพิมพ์ทุกฉบับของภาคเรียนนี้">
           <Input value={advisorHeadName} onChange={(e) => setAdvisorHeadName(e.target.value)} placeholder="เช่น นางสาวสิริขวัญ นพสันเทียะ" />
@@ -140,6 +152,9 @@ export default function SignatorySettingsPage() {
                       ภาคเรียนที่ {s.semester} ปีการศึกษา {s.academicYear}
                     </p>
                     <p className="mt-1 text-xs text-gray-500">
+                      เลขที่คำสั่งแต่งตั้งคณะกรรมการเยี่ยมบ้าน: {s.orderNumber || '(ยังไม่ระบุ)'}
+                    </p>
+                    <p className="text-xs text-gray-500">
                       หัวหน้างานครูที่ปรึกษาและการแนะแนว: {s.advisorHeadName || '(ยังไม่ระบุ)'}
                     </p>
                     <p className="text-xs text-gray-500">
