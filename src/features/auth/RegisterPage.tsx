@@ -155,8 +155,7 @@ export default function RegisterPage() {
           {step === 'done' && (
             <div className="space-y-4 text-center">
               <p className="text-sm text-gray-700">
-                ลงทะเบียนสำเร็จ! บัญชีของคุณรอการเปิดใช้งานจากผู้ดูแลระบบ
-                (เจ้าหน้าที่งานครูที่ปรึกษา) ก่อนจึงจะเข้าสู่ระบบได้
+                ลงทะเบียนสำเร็จ! เข้าสู่ระบบได้เลยด้วยเลขประจำตัวประชาชนและรหัสผ่านที่ตั้งไว้
               </p>
               <Button variant="primary" onClick={() => navigate('/login')} className="w-full">
                 ไปหน้าเข้าสู่ระบบ
