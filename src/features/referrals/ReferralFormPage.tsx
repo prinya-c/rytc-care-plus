@@ -78,12 +78,8 @@ export default function ReferralFormPage() {
       setProblems(referral.problems);
       setProblemSummary(referral.problemSummary);
       setTargetWork(referral.targetWork);
-    } else if (!studentId) {
-      if (routeStudentId) {
-        setStudentId(routeStudentId);
-      } else if (data.roster.length > 0) {
-        setStudentId(data.roster[0].sid);
-      }
+    } else if (!studentId && routeStudentId) {
+      setStudentId(routeStudentId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
@@ -156,6 +152,7 @@ export default function ReferralFormPage() {
         <Section title="ผู้เรียน">
           <Field label="ชื่อนักเรียน" required>
             <Select value={studentId} onChange={(e) => setStudentId(e.target.value)} disabled={isEdit || !!routeStudentId}>
+              <option value="">โปรดเลือก</option>
               {data.roster.map((s) => (
                 <option key={s.sid} value={s.sid}>
                   {studentDisplayName(s)} — {s.class_name}
