@@ -128,10 +128,6 @@ export default function DropoutFollowUpFormPage() {
     }
   }, [data]);
 
-  useEffect(() => {
-    if (!isEdit && !studentId && data && data.roster.length > 0) setStudentId(data.roster[0].sid);
-  }, [isEdit, data, studentId]);
-
   if (loading) return <LoadingState />;
   if (error || !data) return <ErrorState />;
   if (isEdit && !data.existing) return <ErrorState title="ไม่พบบันทึกนี้" description="" />;
@@ -217,6 +213,7 @@ export default function DropoutFollowUpFormPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="ชื่อนักเรียน" required>
               <Select value={studentId} onChange={(e) => setStudentId(e.target.value)} disabled={isEdit}>
+                <option value="">โปรดเลือก</option>
                 {data.roster.map((s) => (
                   <option key={s.sid} value={s.sid}>
                     {studentDisplayName(s)} — {s.class_name}
