@@ -1,4 +1,4 @@
-# RYC Care+
+# RYTC Care+
 
 **Rayong Technical College Care Plus** — ระบบดูแลช่วยเหลือและติดตามนักเรียน นักศึกษา วิทยาลัยเทคนิคระยอง
 

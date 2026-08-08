@@ -31,7 +31,7 @@ export default function AppLayout() {
             C+
           </div>
           <div>
-            <p className="text-sm font-bold leading-tight text-gray-900">RYC Care+</p>
+            <p className="text-sm font-bold leading-tight text-gray-900">RYTC Care+</p>
             <p className="text-[11px] leading-tight text-gray-400">วิทยาลัยเทคนิคระยอง</p>
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function AppLayout() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-xs font-bold text-white">
               C+
             </div>
-            <p className="text-sm font-bold text-gray-900">RYC Care+</p>
+            <p className="text-sm font-bold text-gray-900">RYTC Care+</p>
           </div>
           <button onClick={() => setMobileMenuOpen(true)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100">
             <Icon name="menu" className="h-6 w-6" />

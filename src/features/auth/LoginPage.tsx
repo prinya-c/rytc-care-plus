@@ -60,7 +60,7 @@ export default function LoginPage() {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-600 text-2xl font-bold text-white shadow-lg shadow-brand-600/20">
             C+
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">RYC Care+</h1>
+          <h1 className="text-2xl font-bold text-gray-900">RYTC Care+</h1>
           <p className="mt-1 text-sm text-gray-500">ระบบดูแลช่วยเหลือและติดตามนักเรียน นักศึกษา</p>
           <p className="text-xs text-gray-400">วิทยาลัยเทคนิคระยอง</p>
         </div>
