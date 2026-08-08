@@ -21,7 +21,7 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         id: '/rytc-care-plus/',
-        name: 'RYC Care+',
+        name: 'RYTC Care+',
         short_name: 'Care+',
         description: 'ระบบดูแลช่วยเหลือและติดตามนักเรียน นักศึกษา วิทยาลัยเทคนิคระยอง',
         theme_color: '#16a34a',
