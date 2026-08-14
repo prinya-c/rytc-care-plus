@@ -54,6 +54,10 @@ export function Turnstile({ onVerify, onExpire }: { onVerify: (token: string) =>
           sitekey: SITE_KEY,
           callback: onVerify,
           'expired-callback': onExpire,
+          // 'normal' renders at a fixed 300px, which doesn't match the
+          // full-width inputs/button around it — 'flexible' fills the
+          // parent container instead.
+          size: 'flexible',
         });
       })
       .catch(() => {
@@ -69,5 +73,5 @@ export function Turnstile({ onVerify, onExpire }: { onVerify: (token: string) =>
   }, []);
 
   if (!SITE_KEY) return null;
-  return <div ref={containerRef} />;
+  return <div ref={containerRef} className="w-full" />;
 }
