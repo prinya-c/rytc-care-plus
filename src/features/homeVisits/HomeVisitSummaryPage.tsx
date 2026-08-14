@@ -90,41 +90,41 @@ export default function HomeVisitSummaryPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 print:hidden">
-        <Select value={academicYear} onChange={(e) => setAcademicYear(e.target.value)}>
-          <option value="">ทุกปีการศึกษา</option>
-          {options.years.map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
-        </Select>
-        <Select value={semester} onChange={(e) => setSemester(e.target.value)}>
-          <option value="">ทุกภาคเรียน</option>
-          <option value="1">ภาคเรียนที่ 1</option>
-          <option value="2">ภาคเรียนที่ 2</option>
-        </Select>
-        <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
-          <option value="">ทุกกลุ่มเรียน</option>
-          {options.classes.map(([code, name]) => (
-            <option key={code} value={code}>
-              {code} - {name}
-            </option>
-          ))}
-        </Select>
-        <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
-          <option value="">ทุกสาขาวิชา</option>
-          {options.departments.map(([id, name]) => (
-            <option key={id} value={id}>
-              {name}
-            </option>
-          ))}
-        </Select>
-      </div>
-
-      <div className="print:hidden">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center print:hidden">
+        <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
+          <Select value={academicYear} onChange={(e) => setAcademicYear(e.target.value)}>
+            <option value="">ทุกปีการศึกษา</option>
+            {options.years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </Select>
+          <Select value={semester} onChange={(e) => setSemester(e.target.value)}>
+            <option value="">ทุกภาคเรียน</option>
+            <option value="1">ภาคเรียนที่ 1</option>
+            <option value="2">ภาคเรียนที่ 2</option>
+          </Select>
+          <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+            <option value="">ทุกสาขาวิชา</option>
+            {options.departments.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </Select>
+          <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
+            <option value="">ทุกกลุ่มเรียน</option>
+            {options.classes.map(([code, name]) => (
+              <option key={code} value={code}>
+                {code} - {name}
+              </option>
+            ))}
+          </Select>
+        </div>
         <Button
           variant="primary"
+          className="shrink-0"
           onClick={() => setApplied({ academicYear, semester, classFilter, departmentId })}
         >
           <Icon name="search" className="h-4 w-4" />
