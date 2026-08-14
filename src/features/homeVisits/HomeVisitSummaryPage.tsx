@@ -22,7 +22,10 @@ export default function HomeVisitSummaryPage() {
     if (!data) return { years: [], classes: [], departments: [] };
     return {
       years: Array.from(new Set(data.visits.map((v) => v.academicYear))).filter(Boolean).sort().reverse(),
-      classes: Array.from(new Map(data.students.map((s) => [s.class_code, s.class_name])).entries()).filter(
+      // class_code can come back as a number from legacy-seeded data even
+      // though the type says string, so coerce it — the <select>'s value is
+      // always a string regardless of the option's original JS type.
+      classes: Array.from(new Map(data.students.map((s) => [String(s.class_code), s.class_name])).entries()).filter(
         ([code]) => code,
       ) as [string, string][],
       departments: Array.from(new Set(data.students.map((s) => s.dep_name))).filter(Boolean) as string[],
@@ -33,7 +36,7 @@ export default function HomeVisitSummaryPage() {
     if (!data) return [];
     let students = data.students;
     if (departmentName) students = students.filter((s) => s.dep_name === departmentName);
-    if (classFilter) students = students.filter((s) => s.class_code === classFilter);
+    if (classFilter) students = students.filter((s) => String(s.class_code) === classFilter);
     // Only a submitted visit counts — drafts (e.g. a student pre-filled their own info) don't.
     const visitedIds = new Set(
       data.visits
