@@ -1,13 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchAllScreenings } from './api';
+import { fetchAllClasses, fetchAllDepartments } from '../students/api';
 import { Card, CardHeader, CardBody, StatCard } from '../../components/ui/Card';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
-import { Select } from '../../components/ui/Form';
+import { Select, Button } from '../../components/ui/Form';
+import { Icon } from '../../components/ui/Icon';
 
 const GROUP_COLORS = { trust: '#16a34a', concern: '#ca8a04', close: '#dc2626' };
+const currentAcademicYear = String(new Date().getFullYear() + 543);
+const YEAR_OPTIONS = [currentAcademicYear, String(Number(currentAcademicYear) - 1), String(Number(currentAcademicYear) - 2)];
+
+type AppliedFilters = { academicYear: string; semester: string; classFilter: string; departmentId: string };
 
 export default function ScreeningSummaryPage() {
   // A round card's "ดูผลรวม" button navigates here with the round already
@@ -19,35 +25,40 @@ export default function ScreeningSummaryPage() {
   const [classFilter, setClassFilter] = useState('');
   const [departmentId, setDepartmentId] = useState('');
 
-  const { data, loading, error, refetch } = useAsync(
-    () => fetchAllScreenings({ academicYear: academicYear || undefined, semester: semester || undefined, departmentId: departmentId || undefined }),
-    [academicYear, semester, departmentId],
+  // The heavy fetch only runs once "ค้นหาข้อมูล" is pressed (or the page
+  // arrives pre-filtered from "ดูผลรวม"), to avoid pulling every screening
+  // record college-wide just for the page to render.
+  const [applied, setApplied] = useState<AppliedFilters | null>(
+    initialFilter ? { academicYear: initialFilter.academicYear ?? '', semester: initialFilter.semester ?? '', classFilter: '', departmentId: '' } : null,
   );
 
-  const filtered = useMemo(() => {
-    if (!data) return [];
+  // Dropdown options come from the cheap legacy lookup collections, not from
+  // the (possibly not-yet-fetched) screening data, so they're always ready.
+  const { data: allClasses } = useAsync(fetchAllClasses, []);
+  const { data: allDepartments } = useAsync(fetchAllDepartments, []);
+  const options = {
+    years: YEAR_OPTIONS,
+    classes: (allClasses ?? []).map((c) => [c.class_code, c.class_name] as [string, string]),
+    departments: (allDepartments ?? []).map((d) => [d.dep_id, d.dep_name] as [string, string]),
+  };
+
+  const { data, loading, error, refetch } = useAsync(async () => {
+    if (!applied) return null;
+    const screenings = await fetchAllScreenings({
+      academicYear: applied.academicYear || undefined,
+      semester: applied.semester || undefined,
+      departmentId: applied.departmentId || undefined,
+    });
     // classId can come back as a number from legacy-seeded data even though
     // the type says string, so compare as strings — the <select>'s value is
     // always a string regardless of the option's original JS type.
-    return classFilter ? data.filter((s) => String(s.classId) === classFilter) : data;
-  }, [data, classFilter]);
+    return applied.classFilter ? screenings.filter((s) => String(s.classId) === applied.classFilter) : screenings;
+  }, [applied]);
 
-  const options = useMemo(() => {
-    if (!data) return { years: [], classes: [], departments: [] };
-    return {
-      years: Array.from(new Set(data.map((s) => s.academicYear))).sort().reverse(),
-      classes: Array.from(new Map(data.map((s) => [String(s.classId), s.className])).entries()).filter(
-        ([id]) => id,
-      ),
-      departments: Array.from(new Map(data.map((s) => [s.departmentId, s.departmentName])).entries()).filter(
-        ([id]) => id,
-      ),
-    };
-  }, [data]);
+  if (applied && loading) return <LoadingState />;
+  if (applied && (error || !data)) return <ErrorState onRetry={refetch} />;
 
-  if (loading) return <LoadingState />;
-  if (error || !data) return <ErrorState onRetry={refetch} />;
-
+  const filtered = data ?? [];
   const trust = filtered.filter((s) => s.resultGroup === 'trust').length;
   const concern = filtered.filter((s) => s.resultGroup === 'concern').length;
   const close = filtered.filter((s) => s.resultGroup === 'close').length;
@@ -72,7 +83,7 @@ export default function ScreeningSummaryPage() {
     <div className="space-y-5 print:space-y-3">
       <div className="print:hidden">
         <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">สรุปผลการคัดกรองผู้เรียน</h1>
-        <p className="text-sm text-gray-500">ทั้งหมด {filtered.length} รายการ</p>
+        <p className="text-sm text-gray-500">{applied ? `ทั้งหมด ${filtered.length} รายการ` : 'เลือกเงื่อนไขแล้วกด "ค้นหาข้อมูล" เพื่อแสดงผล'}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 print:hidden">
@@ -107,7 +118,19 @@ export default function ScreeningSummaryPage() {
         </Select>
       </div>
 
-      {filtered.length === 0 ? (
+      <div className="print:hidden">
+        <Button
+          variant="primary"
+          onClick={() => setApplied({ academicYear, semester, classFilter, departmentId })}
+        >
+          <Icon name="search" className="h-4 w-4" />
+          ค้นหาข้อมูล
+        </Button>
+      </div>
+
+      {!applied ? (
+        <EmptyState title="โปรดเลือกเงื่อนไขและกดค้นหาข้อมูล" description="เลือกจากเมนูด้านบนแล้วกดปุ่ม “ค้นหาข้อมูล” ก่อนเริ่มดูสรุปผลการคัดกรอง" />
+      ) : filtered.length === 0 ? (
         <EmptyState title="ไม่พบข้อมูลการคัดกรองตามเงื่อนไขที่เลือก" />
       ) : (
         <>
