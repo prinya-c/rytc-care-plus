@@ -26,14 +26,14 @@ export default function ScreeningSummaryPage() {
 
   const filtered = useMemo(() => {
     if (!data) return [];
-    return classFilter ? data.filter((s) => s.className === classFilter) : data;
+    return classFilter ? data.filter((s) => s.classId === classFilter) : data;
   }, [data, classFilter]);
 
   const options = useMemo(() => {
     if (!data) return { years: [], classes: [], departments: [] };
     return {
       years: Array.from(new Set(data.map((s) => s.academicYear))).sort().reverse(),
-      classes: Array.from(new Set(data.map((s) => s.className))).filter(Boolean),
+      classes: Array.from(new Map(data.map((s) => [s.classId, s.className])).entries()).filter(([id]) => id),
       departments: Array.from(new Map(data.map((s) => [s.departmentId, s.departmentName])).entries()).filter(
         ([id]) => id,
       ),
@@ -86,9 +86,9 @@ export default function ScreeningSummaryPage() {
         </Select>
         <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
           <option value="">ทุกกลุ่มเรียน</option>
-          {options.classes.map((c) => (
-            <option key={c} value={c}>
-              {c}
+          {options.classes.map(([id, name]) => (
+            <option key={id} value={id}>
+              {id} - {name}
             </option>
           ))}
         </Select>
