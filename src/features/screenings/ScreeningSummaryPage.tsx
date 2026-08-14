@@ -38,7 +38,9 @@ export default function ScreeningSummaryPage() {
   const { data: allDepartments } = useAsync(fetchAllDepartments, []);
   const options = {
     years: YEAR_OPTIONS,
-    classes: (allClasses ?? []).map((c) => [c.class_code, c.class_name] as [string, string]),
+    classes: (allClasses ?? [])
+      .map((c) => [c.class_code, c.class_name] as [string, string])
+      .sort((a, b) => a[0].localeCompare(b[0])),
     departments: (allDepartments ?? []).map((d) => [d.dep_id, d.dep_name] as [string, string]),
   };
 
