@@ -2,38 +2,49 @@ import { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchAllHomeVisits } from './api';
-import { fetchAllStudents, fetchAllDepartments } from '../students/api';
+import { fetchAllStudents } from '../students/api';
 import { Card, CardHeader, CardBody, StatCard } from '../../components/ui/Card';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
 import { Select, Button } from '../../components/ui/Form';
 
-const ALL_DEPARTMENTS = '__all__';
-
 export default function HomeVisitSummaryPage() {
+  const [academicYear, setAcademicYear] = useState('');
+  const [semester, setSemester] = useState('');
+  const [classFilter, setClassFilter] = useState('');
   const [departmentName, setDepartmentName] = useState('');
 
-  // Cheap up front — just the department names for the dropdown, not every
-  // student. The heavy fetch (every student + every home-visit college-wide)
-  // only runs once a department is actually chosen, below.
-  const { data: departments } = useAsync(fetchAllDepartments, []);
-
   const { data, loading, error, refetch } = useAsync(async () => {
-    if (!departmentName) return null;
     const [visits, students] = await Promise.all([fetchAllHomeVisits(), fetchAllStudents()]);
     return { visits, students };
-  }, [departmentName]);
+  }, []);
+
+  const options = useMemo(() => {
+    if (!data) return { years: [], classes: [], departments: [] };
+    return {
+      years: Array.from(new Set(data.visits.map((v) => v.academicYear))).filter(Boolean).sort().reverse(),
+      classes: Array.from(new Set(data.students.map((s) => s.class_name))).filter(Boolean) as string[],
+      departments: Array.from(new Set(data.students.map((s) => s.dep_name))).filter(Boolean) as string[],
+    };
+  }, [data]);
 
   const rows = useMemo(() => {
-    if (!data || !departmentName) return [];
+    if (!data) return [];
     let students = data.students;
-    if (departmentName !== ALL_DEPARTMENTS) students = students.filter((s) => s.dep_name === departmentName);
+    if (departmentName) students = students.filter((s) => s.dep_name === departmentName);
+    if (classFilter) students = students.filter((s) => s.class_name === classFilter);
     // Only a submitted visit counts — drafts (e.g. a student pre-filled their own info) don't.
-    const visitedIds = new Set(data.visits.filter((v) => v.status === 'submitted').map((v) => v.studentId));
+    const visitedIds = new Set(
+      data.visits
+        .filter((v) => v.status === 'submitted')
+        .filter((v) => !academicYear || v.academicYear === academicYear)
+        .filter((v) => !semester || v.semester === semester)
+        .map((v) => v.studentId),
+    );
     return students.map((s) => ({ ...s, visited: visitedIds.has(s.sid) }));
-  }, [data, departmentName]);
+  }, [data, departmentName, classFilter, academicYear, semester]);
 
-  if (departmentName && loading) return <LoadingState />;
-  if (departmentName && (error || !data)) return <ErrorState onRetry={refetch} />;
+  if (loading) return <LoadingState />;
+  if (error || !data) return <ErrorState onRetry={refetch} />;
 
   const visitedCount = rows.filter((r) => r.visited).length;
   const unvisitedCount = rows.length - visitedCount;
@@ -52,28 +63,46 @@ export default function HomeVisitSummaryPage() {
       <div className="flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">สรุปการเยี่ยมบ้านผู้เรียน</h1>
-          <p className="text-sm text-gray-500">{departmentName ? `ทั้งหมด ${rows.length} คน` : 'โปรดเลือกสาขาวิชาเพื่อแสดงข้อมูล'}</p>
+          <p className="text-sm text-gray-500">ทั้งหมด {rows.length} คน</p>
         </div>
-        <Button variant="secondary" disabled={!departmentName} onClick={() => window.print()}>
+        <Button variant="secondary" disabled={rows.length === 0} onClick={() => window.print()}>
           พิมพ์รายงาน
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 print:hidden">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 print:hidden">
+        <Select value={academicYear} onChange={(e) => setAcademicYear(e.target.value)}>
+          <option value="">ทุกปีการศึกษา</option>
+          {options.years.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </Select>
+        <Select value={semester} onChange={(e) => setSemester(e.target.value)}>
+          <option value="">ทุกภาคเรียน</option>
+          <option value="1">ภาคเรียนที่ 1</option>
+          <option value="2">ภาคเรียนที่ 2</option>
+        </Select>
+        <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
+          <option value="">ทุกกลุ่มเรียน</option>
+          {options.classes.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </Select>
         <Select value={departmentName} onChange={(e) => setDepartmentName(e.target.value)}>
-          <option value="">โปรดเลือกสาขาวิชา</option>
-          <option value={ALL_DEPARTMENTS}>ทุกสาขาวิชา</option>
-          {(departments ?? []).map((d) => (
-            <option key={d.dep_id} value={d.dep_name}>
-              {d.dep_name}
+          <option value="">ทุกสาขาวิชา</option>
+          {options.departments.map((d) => (
+            <option key={d} value={d}>
+              {d}
             </option>
           ))}
         </Select>
       </div>
 
-      {!departmentName ? (
-        <EmptyState title="โปรดเลือกสาขาวิชา" description="เลือกจากเมนูด้านบนก่อนเริ่มดูสรุปผลการเยี่ยมบ้าน" />
-      ) : rows.length === 0 ? (
+      {rows.length === 0 ? (
         <EmptyState title="ไม่พบข้อมูลตามเงื่อนไขที่เลือก" />
       ) : (
         <>
