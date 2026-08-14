@@ -26,14 +26,19 @@ export default function ScreeningSummaryPage() {
 
   const filtered = useMemo(() => {
     if (!data) return [];
-    return classFilter ? data.filter((s) => s.classId === classFilter) : data;
+    // classId can come back as a number from legacy-seeded data even though
+    // the type says string, so compare as strings — the <select>'s value is
+    // always a string regardless of the option's original JS type.
+    return classFilter ? data.filter((s) => String(s.classId) === classFilter) : data;
   }, [data, classFilter]);
 
   const options = useMemo(() => {
     if (!data) return { years: [], classes: [], departments: [] };
     return {
       years: Array.from(new Set(data.map((s) => s.academicYear))).sort().reverse(),
-      classes: Array.from(new Map(data.map((s) => [s.classId, s.className])).entries()).filter(([id]) => id),
+      classes: Array.from(new Map(data.map((s) => [String(s.classId), s.className])).entries()).filter(
+        ([id]) => id,
+      ),
       departments: Array.from(new Map(data.map((s) => [s.departmentId, s.departmentName])).entries()).filter(
         ([id]) => id,
       ),
