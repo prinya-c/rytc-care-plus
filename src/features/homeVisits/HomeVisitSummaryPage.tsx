@@ -30,8 +30,10 @@ export default function HomeVisitSummaryPage() {
   const { data: allDepartments } = useAsync(fetchAllDepartments, []);
   const options = {
     years: YEAR_OPTIONS,
+    // class_code can come back as a number from legacy-seeded data even
+    // though the type says string — coerce before sorting/comparing.
     classes: (allClasses ?? [])
-      .map((c) => [c.class_code, c.class_name] as [string, string])
+      .map((c) => [String(c.class_code), c.class_name] as [string, string])
       .sort((a, b) => a[0].localeCompare(b[0])),
     departments: (allDepartments ?? []).map((d) => [d.dep_id, d.dep_name] as [string, string]),
   };
