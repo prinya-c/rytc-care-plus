@@ -22,7 +22,9 @@ export default function HomeVisitSummaryPage() {
     if (!data) return { years: [], classes: [], departments: [] };
     return {
       years: Array.from(new Set(data.visits.map((v) => v.academicYear))).filter(Boolean).sort().reverse(),
-      classes: Array.from(new Set(data.students.map((s) => s.class_name))).filter(Boolean) as string[],
+      classes: Array.from(new Map(data.students.map((s) => [s.class_code, s.class_name])).entries()).filter(
+        ([code]) => code,
+      ) as [string, string][],
       departments: Array.from(new Set(data.students.map((s) => s.dep_name))).filter(Boolean) as string[],
     };
   }, [data]);
@@ -31,7 +33,7 @@ export default function HomeVisitSummaryPage() {
     if (!data) return [];
     let students = data.students;
     if (departmentName) students = students.filter((s) => s.dep_name === departmentName);
-    if (classFilter) students = students.filter((s) => s.class_name === classFilter);
+    if (classFilter) students = students.filter((s) => s.class_code === classFilter);
     // Only a submitted visit counts — drafts (e.g. a student pre-filled their own info) don't.
     const visitedIds = new Set(
       data.visits
@@ -86,9 +88,9 @@ export default function HomeVisitSummaryPage() {
         </Select>
         <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
           <option value="">ทุกกลุ่มเรียน</option>
-          {options.classes.map((c) => (
-            <option key={c} value={c}>
-              {c}
+          {options.classes.map(([code, name]) => (
+            <option key={code} value={code}>
+              {code} - {name}
             </option>
           ))}
         </Select>
