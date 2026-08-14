@@ -1,55 +1,66 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchAllHomeVisits } from './api';
-import { fetchAllStudents } from '../students/api';
+import { fetchAllClasses, fetchAllDepartments, fetchAllStudents } from '../students/api';
 import { Card, CardHeader, CardBody, StatCard } from '../../components/ui/Card';
 import { LoadingState, ErrorState, EmptyState } from '../../components/ui/States';
 import { Select, Button } from '../../components/ui/Form';
+import { Icon } from '../../components/ui/Icon';
+
+const currentAcademicYear = String(new Date().getFullYear() + 543);
+const YEAR_OPTIONS = [currentAcademicYear, String(Number(currentAcademicYear) - 1), String(Number(currentAcademicYear) - 2)];
+
+type AppliedFilters = { academicYear: string; semester: string; classFilter: string; departmentId: string };
 
 export default function HomeVisitSummaryPage() {
   const [academicYear, setAcademicYear] = useState('');
   const [semester, setSemester] = useState('');
   const [classFilter, setClassFilter] = useState('');
-  const [departmentName, setDepartmentName] = useState('');
+  const [departmentId, setDepartmentId] = useState('');
+
+  // The heavy fetch (every student + every home-visit college-wide) only
+  // runs once "ค้นหาข้อมูล" is pressed, to avoid pulling the whole college
+  // roster just for the page to render.
+  const [applied, setApplied] = useState<AppliedFilters | null>(null);
+
+  // Dropdown options come from the cheap legacy lookup collections, not from
+  // the (possibly not-yet-fetched) roster/visit data, so they're always ready.
+  const { data: allClasses } = useAsync(fetchAllClasses, []);
+  const { data: allDepartments } = useAsync(fetchAllDepartments, []);
+  const options = {
+    years: YEAR_OPTIONS,
+    classes: (allClasses ?? []).map((c) => [c.class_code, c.class_name] as [string, string]),
+    departments: (allDepartments ?? []).map((d) => [d.dep_id, d.dep_name] as [string, string]),
+  };
 
   const { data, loading, error, refetch } = useAsync(async () => {
+    if (!applied) return null;
     const [visits, students] = await Promise.all([fetchAllHomeVisits(), fetchAllStudents()]);
     return { visits, students };
-  }, []);
+  }, [applied]);
 
-  const options = useMemo(() => {
-    if (!data) return { years: [], classes: [], departments: [] };
-    return {
-      years: Array.from(new Set(data.visits.map((v) => v.academicYear))).filter(Boolean).sort().reverse(),
-      // class_code can come back as a number from legacy-seeded data even
-      // though the type says string, so coerce it — the <select>'s value is
-      // always a string regardless of the option's original JS type.
-      classes: Array.from(new Map(data.students.map((s) => [String(s.class_code), s.class_name])).entries()).filter(
-        ([code]) => code,
-      ) as [string, string][],
-      departments: Array.from(new Set(data.students.map((s) => s.dep_name))).filter(Boolean) as string[],
-    };
-  }, [data]);
+  if (applied && loading) return <LoadingState />;
+  if (applied && (error || !data)) return <ErrorState onRetry={refetch} />;
 
-  const rows = useMemo(() => {
-    if (!data) return [];
+  const rows = (() => {
+    if (!data || !applied) return [];
+    // class_code/dep_id can come back as a number from legacy-seeded data
+    // even though the type says string, so coerce it — the <select>'s value
+    // is always a string regardless of the option's original JS type.
     let students = data.students;
-    if (departmentName) students = students.filter((s) => s.dep_name === departmentName);
-    if (classFilter) students = students.filter((s) => String(s.class_code) === classFilter);
+    if (applied.departmentId) students = students.filter((s) => String(s.dep_id) === applied.departmentId);
+    if (applied.classFilter) students = students.filter((s) => String(s.class_code) === applied.classFilter);
     // Only a submitted visit counts — drafts (e.g. a student pre-filled their own info) don't.
     const visitedIds = new Set(
       data.visits
         .filter((v) => v.status === 'submitted')
-        .filter((v) => !academicYear || v.academicYear === academicYear)
-        .filter((v) => !semester || v.semester === semester)
+        .filter((v) => !applied.academicYear || v.academicYear === applied.academicYear)
+        .filter((v) => !applied.semester || v.semester === applied.semester)
         .map((v) => v.studentId),
     );
     return students.map((s) => ({ ...s, visited: visitedIds.has(s.sid) }));
-  }, [data, departmentName, classFilter, academicYear, semester]);
-
-  if (loading) return <LoadingState />;
-  if (error || !data) return <ErrorState onRetry={refetch} />;
+  })();
 
   const visitedCount = rows.filter((r) => r.visited).length;
   const unvisitedCount = rows.length - visitedCount;
@@ -68,7 +79,7 @@ export default function HomeVisitSummaryPage() {
       <div className="flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">สรุปการเยี่ยมบ้านผู้เรียน</h1>
-          <p className="text-sm text-gray-500">ทั้งหมด {rows.length} คน</p>
+          <p className="text-sm text-gray-500">{applied ? `ทั้งหมด ${rows.length} คน` : 'เลือกเงื่อนไขแล้วกด "ค้นหาข้อมูล" เพื่อแสดงผล'}</p>
         </div>
         <Button variant="secondary" disabled={rows.length === 0} onClick={() => window.print()}>
           พิมพ์รายงาน
@@ -97,17 +108,29 @@ export default function HomeVisitSummaryPage() {
             </option>
           ))}
         </Select>
-        <Select value={departmentName} onChange={(e) => setDepartmentName(e.target.value)}>
+        <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
           <option value="">ทุกสาขาวิชา</option>
-          {options.departments.map((d) => (
-            <option key={d} value={d}>
-              {d}
+          {options.departments.map(([id, name]) => (
+            <option key={id} value={id}>
+              {name}
             </option>
           ))}
         </Select>
       </div>
 
-      {rows.length === 0 ? (
+      <div className="print:hidden">
+        <Button
+          variant="primary"
+          onClick={() => setApplied({ academicYear, semester, classFilter, departmentId })}
+        >
+          <Icon name="search" className="h-4 w-4" />
+          ค้นหาข้อมูล
+        </Button>
+      </div>
+
+      {!applied ? (
+        <EmptyState title="โปรดเลือกเงื่อนไขและกดค้นหาข้อมูล" description="เลือกจากเมนูด้านบนแล้วกดปุ่ม “ค้นหาข้อมูล” ก่อนเริ่มดูสรุปผลการเยี่ยมบ้าน" />
+      ) : rows.length === 0 ? (
         <EmptyState title="ไม่พบข้อมูลตามเงื่อนไขที่เลือก" />
       ) : (
         <>
