@@ -13,7 +13,16 @@ const GROUP_COLORS = { trust: '#16a34a', concern: '#ca8a04', close: '#dc2626' };
 const currentAcademicYear = String(new Date().getFullYear() + 543);
 const YEAR_OPTIONS = [currentAcademicYear, String(Number(currentAcademicYear) - 1), String(Number(currentAcademicYear) - 2)];
 
-type AppliedFilters = { academicYear: string; semester: string; classFilter: string; departmentName: string };
+type AppliedFilters = { academicYear: string; semester: string; classFilter: string; departmentId: string };
+
+// std_class/students encode dep_id as a single level digit (2 = ปวช., 3 =
+// ปวส.) prepended to the "department" collection's own dep_id — e.g.
+// department.dep_id "1901" shows up as "21901" (ปวช.) or "31901" (ปวส.) on
+// classes/students of that department. Strip the leading digit to relate
+// either back to the base department id.
+function baseDepId(id: unknown) {
+  return String(id).slice(1);
+}
 
 export default function ScreeningSummaryPage() {
   // A round card's "ดูผลรวม" button navigates here with the round already
@@ -29,7 +38,7 @@ export default function ScreeningSummaryPage() {
   // arrives pre-filtered from "ดูผลรวม"), to avoid pulling every screening
   // record college-wide just for the page to render.
   const [applied, setApplied] = useState<AppliedFilters | null>(
-    initialFilter ? { academicYear: initialFilter.academicYear ?? '', semester: initialFilter.semester ?? '', classFilter: '', departmentName: '' } : null,
+    initialFilter ? { academicYear: initialFilter.academicYear ?? '', semester: initialFilter.semester ?? '', classFilter: '', departmentId: '' } : null,
   );
 
   // Dropdown options come from the cheap legacy lookup collections, not from
@@ -37,17 +46,12 @@ export default function ScreeningSummaryPage() {
   const { data: allClasses } = useAsync(fetchAllClasses, []);
   const { data: allDepartments } = useAsync(fetchAllDepartments, []);
   const departments = (allDepartments ?? []).map((d) => [d.dep_id, d.dep_name] as [string, string]);
-  // "department" and "std_class" are independently-managed legacy
-  // collections — their dep_id values don't reliably line up with each
-  // other (different code schemes), so classes are scoped to a department
-  // by matching dep_name (the human-readable name) instead of dep_id.
-  const selectedDeptName = departments.find(([id]) => id === departmentId)?.[1];
   const options = {
     years: YEAR_OPTIONS,
-    // class_code can come back as a number from legacy-seeded data even
-    // though the type says string — coerce before sorting/comparing.
     classes: (allClasses ?? [])
-      .filter((c) => !selectedDeptName || c.dep_name === selectedDeptName)
+      .filter((c) => !departmentId || baseDepId(c.dep_id) === departmentId)
+      // class_code can come back as a number from legacy-seeded data even
+      // though the type says string — coerce before sorting/comparing.
       .map((c) => [String(c.class_code), c.class_name] as [string, string])
       .sort((a, b) => a[0].localeCompare(b[0])),
     departments,
@@ -56,15 +60,14 @@ export default function ScreeningSummaryPage() {
   const { data, loading, error, refetch } = useAsync(async () => {
     if (!applied) return null;
     // departmentId is deliberately NOT passed to the query — Screening.
-    // departmentId is copied from the student's own dep_id, which doesn't
-    // reliably match the independent "department" collection's dep_id (see
-    // the classes filter above), so department is matched client-side by
-    // departmentName instead, same as the class filter below.
+    // departmentId carries the ปวช./ปวส. level-prefixed form (see
+    // baseDepId above), not the "department" collection's own bare id, so
+    // department is matched client-side instead.
     let screenings = await fetchAllScreenings({
       academicYear: applied.academicYear || undefined,
       semester: applied.semester || undefined,
     });
-    if (applied.departmentName) screenings = screenings.filter((s) => s.departmentName === applied.departmentName);
+    if (applied.departmentId) screenings = screenings.filter((s) => baseDepId(s.departmentId) === applied.departmentId);
     // classId can come back as a number from legacy-seeded data even though
     // the type says string, so compare as strings — the <select>'s value is
     // always a string regardless of the option's original JS type.
@@ -144,7 +147,7 @@ export default function ScreeningSummaryPage() {
         <Button
           variant="primary"
           className="shrink-0"
-          onClick={() => setApplied({ academicYear, semester, classFilter, departmentName: selectedDeptName ?? '' })}
+          onClick={() => setApplied({ academicYear, semester, classFilter, departmentId })}
         >
           <Icon name="search" className="h-4 w-4" />
           ค้นหาข้อมูล
