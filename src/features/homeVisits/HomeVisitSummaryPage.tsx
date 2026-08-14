@@ -30,9 +30,10 @@ export default function HomeVisitSummaryPage() {
   const { data: allDepartments } = useAsync(fetchAllDepartments, []);
   const options = {
     years: YEAR_OPTIONS,
-    // class_code can come back as a number from legacy-seeded data even
-    // though the type says string — coerce before sorting/comparing.
+    // class_code/dep_id can come back as a number from legacy-seeded data
+    // even though the type says string — coerce before sorting/comparing.
     classes: (allClasses ?? [])
+      .filter((c) => !departmentId || String(c.dep_id) === departmentId)
       .map((c) => [String(c.class_code), c.class_name] as [string, string])
       .sort((a, b) => a[0].localeCompare(b[0])),
     departments: (allDepartments ?? []).map((d) => [d.dep_id, d.dep_name] as [string, string]),
@@ -105,7 +106,13 @@ export default function HomeVisitSummaryPage() {
             <option value="1">ภาคเรียนที่ 1</option>
             <option value="2">ภาคเรียนที่ 2</option>
           </Select>
-          <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+          <Select
+            value={departmentId}
+            onChange={(e) => {
+              setDepartmentId(e.target.value);
+              setClassFilter('');
+            }}
+          >
             <option value="">ทุกสาขาวิชา</option>
             {options.departments.map(([id, name]) => (
               <option key={id} value={id}>
