@@ -11,7 +11,7 @@ import { Icon } from '../../components/ui/Icon';
 const currentAcademicYear = String(new Date().getFullYear() + 543);
 const YEAR_OPTIONS = [currentAcademicYear, String(Number(currentAcademicYear) - 1), String(Number(currentAcademicYear) - 2)];
 
-type AppliedFilters = { academicYear: string; semester: string; classFilter: string; departmentId: string };
+type AppliedFilters = { academicYear: string; semester: string; classFilter: string; departmentName: string };
 
 export default function HomeVisitSummaryPage() {
   const [academicYear, setAcademicYear] = useState('');
@@ -28,15 +28,22 @@ export default function HomeVisitSummaryPage() {
   // the (possibly not-yet-fetched) roster/visit data, so they're always ready.
   const { data: allClasses } = useAsync(fetchAllClasses, []);
   const { data: allDepartments } = useAsync(fetchAllDepartments, []);
+  const departments = (allDepartments ?? []).map((d) => [d.dep_id, d.dep_name] as [string, string]);
+  // "department" and "std_class"/"students" are independently-managed
+  // legacy collections — their dep_id values don't reliably line up with
+  // each other (different code schemes), so classes and the roster are
+  // scoped to a department by matching dep_name (the human-readable name)
+  // instead of dep_id.
+  const selectedDeptName = departments.find(([id]) => id === departmentId)?.[1];
   const options = {
     years: YEAR_OPTIONS,
-    // class_code/dep_id can come back as a number from legacy-seeded data
-    // even though the type says string — coerce before sorting/comparing.
+    // class_code can come back as a number from legacy-seeded data even
+    // though the type says string — coerce before sorting/comparing.
     classes: (allClasses ?? [])
-      .filter((c) => !departmentId || String(c.dep_id) === departmentId)
+      .filter((c) => !selectedDeptName || c.dep_name === selectedDeptName)
       .map((c) => [String(c.class_code), c.class_name] as [string, string])
       .sort((a, b) => a[0].localeCompare(b[0])),
-    departments: (allDepartments ?? []).map((d) => [d.dep_id, d.dep_name] as [string, string]),
+    departments,
   };
 
   const { data, loading, error, refetch } = useAsync(async () => {
@@ -50,11 +57,11 @@ export default function HomeVisitSummaryPage() {
 
   const rows = (() => {
     if (!data || !applied) return [];
-    // class_code/dep_id can come back as a number from legacy-seeded data
-    // even though the type says string, so coerce it — the <select>'s value
-    // is always a string regardless of the option's original JS type.
+    // class_code can come back as a number from legacy-seeded data even
+    // though the type says string, so coerce it — the <select>'s value is
+    // always a string regardless of the option's original JS type.
     let students = data.students;
-    if (applied.departmentId) students = students.filter((s) => String(s.dep_id) === applied.departmentId);
+    if (applied.departmentName) students = students.filter((s) => s.dep_name === applied.departmentName);
     if (applied.classFilter) students = students.filter((s) => String(s.class_code) === applied.classFilter);
     // Only a submitted visit counts — drafts (e.g. a student pre-filled their own info) don't.
     const visitedIds = new Set(
@@ -132,7 +139,7 @@ export default function HomeVisitSummaryPage() {
         <Button
           variant="primary"
           className="shrink-0"
-          onClick={() => setApplied({ academicYear, semester, classFilter, departmentId })}
+          onClick={() => setApplied({ academicYear, semester, classFilter, departmentName: selectedDeptName ?? '' })}
         >
           <Icon name="search" className="h-4 w-4" />
           ค้นหาข้อมูล
