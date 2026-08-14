@@ -3,6 +3,8 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { useStudentAuth } from '../studentAuth/StudentAuthContext';
 import { Input, Field, Button } from '../../components/ui/Form';
+import { Turnstile, TURNSTILE_ENABLED } from '../../components/ui/Turnstile';
+import { verifyTurnstileToken } from '../../lib/turnstile';
 
 type Tab = 'staff' | 'student';
 
@@ -16,10 +18,14 @@ export default function LoginPage() {
   const [citizenId, setCitizenId] = useState('');
   const [password, setPassword] = useState('');
   const [staffSubmitting, setStaffSubmitting] = useState(false);
+  const [staffToken, setStaffToken] = useState('');
+  const [staffTurnstileError, setStaffTurnstileError] = useState('');
 
   const [studentId, setStudentId] = useState('');
   const [studentCitizenId, setStudentCitizenId] = useState('');
   const [studentSubmitting, setStudentSubmitting] = useState(false);
+  const [studentToken, setStudentToken] = useState('');
+  const [studentTurnstileError, setStudentTurnstileError] = useState('');
 
   if (!staffLoading && profile?.isActive) {
     return <Navigate to="/dashboard" replace />;
@@ -30,8 +36,13 @@ export default function LoginPage() {
 
   async function handleStaffSubmit(e: FormEvent) {
     e.preventDefault();
+    setStaffTurnstileError('');
     setStaffSubmitting(true);
     try {
+      if (TURNSTILE_ENABLED && !(await verifyTurnstileToken(staffToken))) {
+        setStaffTurnstileError('ยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+        return;
+      }
       await staffLogin(citizenId, password);
     } catch {
       // error surfaced via AuthContext `error`
@@ -42,8 +53,13 @@ export default function LoginPage() {
 
   async function handleStudentSubmit(e: FormEvent) {
     e.preventDefault();
+    setStudentTurnstileError('');
     setStudentSubmitting(true);
     try {
+      if (TURNSTILE_ENABLED && !(await verifyTurnstileToken(studentToken))) {
+        setStudentTurnstileError('ยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+        return;
+      }
       await studentLogin(studentId, studentCitizenId);
       navigate('/student/home-visit');
     } catch {
@@ -111,9 +127,19 @@ export default function LoginPage() {
                 />
               </Field>
 
-              {staffError && <p className="rounded-lg bg-close-50 px-3 py-2 text-sm text-close-700">{staffError}</p>}
+              <Turnstile onVerify={setStaffToken} onExpire={() => setStaffToken('')} />
 
-              <Button type="submit" variant="primary" loading={staffSubmitting} className="w-full">
+              {(staffError || staffTurnstileError) && (
+                <p className="rounded-lg bg-close-50 px-3 py-2 text-sm text-close-700">{staffTurnstileError || staffError}</p>
+              )}
+
+              <Button
+                type="submit"
+                variant="primary"
+                loading={staffSubmitting}
+                disabled={TURNSTILE_ENABLED && !staffToken}
+                className="w-full"
+              >
                 เข้าสู่ระบบ
               </Button>
             </form>
@@ -148,9 +174,19 @@ export default function LoginPage() {
               />
             </Field>
 
-            {studentError && <p className="rounded-lg bg-close-50 px-3 py-2 text-sm text-close-700">{studentError}</p>}
+            <Turnstile onVerify={setStudentToken} onExpire={() => setStudentToken('')} />
 
-            <Button type="submit" variant="primary" loading={studentSubmitting} className="w-full">
+            {(studentError || studentTurnstileError) && (
+              <p className="rounded-lg bg-close-50 px-3 py-2 text-sm text-close-700">{studentTurnstileError || studentError}</p>
+            )}
+
+            <Button
+              type="submit"
+              variant="primary"
+              loading={studentSubmitting}
+              disabled={TURNSTILE_ENABLED && !studentToken}
+              className="w-full"
+            >
               เข้าสู่ระบบ
             </Button>
             <p className="text-center text-xs text-gray-400">
