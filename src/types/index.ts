@@ -508,3 +508,134 @@ export interface SignatorySettings {
   updatedBy: string;
   updatedAt: unknown;
 }
+
+/** ประเภทความพิการ — เลือกได้หลายข้อ, ใช้ในแบบสำรวจข้อมูลผู้เรียนพิการ */
+export interface DisabilityTypes {
+  visual: boolean;
+  hearing: boolean;
+  physical: boolean;
+  mental: boolean;
+  intellectual: boolean;
+  learning: boolean;
+  autism: boolean;
+}
+
+export const DISABILITY_TYPE_LABEL: Record<keyof DisabilityTypes, string> = {
+  visual: 'ความพิการทางการเห็น',
+  hearing: 'ความพิการทางการได้ยินหรือสื่อความหมาย',
+  physical: 'ความพิการทางการเคลื่อนไหวหรือทางร่างกาย',
+  mental: 'ความพิการทางจิตใจหรือพฤติกรรม',
+  intellectual: 'ความพิการทางสติปัญญา',
+  learning: 'ความพิการทางการเรียนรู้',
+  autism: 'ความพิการทางออทิสติก',
+};
+
+export const DISABILITY_TYPE_ORDER = Object.keys(DISABILITY_TYPE_LABEL) as (keyof DisabilityTypes)[];
+
+/** ความสามารถในการศึกษาและการใช้อุปกรณ์ช่วยศึกษา — เลือกได้หลายข้อ */
+export interface AssistiveNeeds {
+  sameAsRegular: boolean;
+  brailleNote: boolean;
+  brailleLevel: boolean;
+  brailleLevelDetail: string;
+  hearingAid: boolean;
+  signLanguage: boolean;
+  audioReaderOrTabPlayer: boolean;
+  mp3Player: boolean;
+  portableCctv: boolean;
+  zoomText: boolean;
+  computerProgram: boolean;
+  computerProgramDetail: string;
+  other: boolean;
+  otherDetail: string;
+}
+
+export interface DisabilitySurvey {
+  id: string;
+  studentId: string;
+  studentName: string;
+  classId: string;
+  className: string;
+  departmentId: string;
+  departmentName: string;
+  advisorTeacherId: string;
+  advisorTeacherName: string;
+  academicYear: string;
+  semester: string;
+
+  // ส่วนที่ 1: ข้อมูลทั่วไป — เติมอัตโนมัติจากข้อมูลที่มีอยู่แล้วได้บางส่วน (ดู DisabilitySurveyFormPage.tsx)
+  citizenId: string;
+  religion: string;
+  birthDate: string;
+  age: string;
+  houseNumber: string;
+  moo: string;
+  villageName: string;
+  soi: string;
+  road: string;
+  subdistrict: string;
+  district: string;
+  province: string;
+  postalCode: string;
+  phone: string;
+  mobile: string;
+  fax: string;
+  email: string;
+  guardianName: string;
+  guardianAddress: string;
+  guardianPhone: string;
+  /** รูปถ่ายขนาด 1 นิ้ว — ไม่บังคับ */
+  photoUrl: string;
+
+  // ส่วนที่ 2: ข้อมูลความพิการ
+  disabilityRegistrationNumber: string;
+  disabilityExpiryDate: string;
+  disabilityTypes: DisabilityTypes;
+
+  // ส่วนที่ 3: ประวัติการศึกษา (เดิม)
+  /** 'ม.3' | 'ม.6' | 'ปวช.' | 'ปวส.' */
+  priorEducationLevel: string;
+  priorSchoolName: string;
+  priorSchoolProvince: string;
+  priorSchoolDistrict: string;
+
+  // ส่วนที่ 4: ครู/อาจารย์ที่อ้างอิงได้ (สถานศึกษาเดิม)
+  referenceTeacherName: string;
+  referenceTeacherPosition: string;
+  referenceTeacherPhone: string;
+
+  // ส่วนที่ 5: สถานศึกษาปัจจุบัน
+  /** 'ในเวลาปกติ' | 'นอกเวลา (ภาคสมทบ)' | 'ทวิภาคี' */
+  studyFormat: string;
+  /** 'ปวช.' | 'ปวส.' | 'ปริญญาตรีสายเทคโนโลยีหรือสายปฏิบัติการ' */
+  currentLevel: string;
+  currentLevelYear: string;
+  major: string;
+  curriculum: string;
+
+  // ส่วนที่ 6: ประวัติสุขภาพ
+  hasChronicDisease: boolean;
+  chronicDiseaseDetail: string;
+  /** 'monthly' | 'as_appointed' | 'none' */
+  doctorVisitFrequency: string;
+
+  // ส่วนที่ 7: ความสามารถในการศึกษาและการใช้อุปกรณ์ช่วยศึกษา
+  assistiveNeeds: AssistiveNeeds;
+
+  // ส่วนที่ 8: การขอรับความช่วยเหลือหรือบริการทางการศึกษาที่ต้องการ
+  neededSupportDetail: string;
+
+  // ส่วนที่ 9: ทุนการศึกษา
+  hasOtherScholarship: boolean;
+  otherScholarshipDetail: string;
+
+  // ส่วนที่ 10: การขอรับเงินอุดหนุนทางการศึกษาสำหรับผู้เรียนพิการ
+  wantsSubsidy: boolean;
+  /** 'self_pay' | 'other_welfare' | '' — มีความหมายเฉพาะเมื่อ wantsSubsidy เป็น false */
+  subsidyWaiveOption: string;
+
+  status: DocStatus;
+  createdBy: string;
+  createdAt: unknown;
+  updatedAt: unknown;
+}
