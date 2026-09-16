@@ -3,11 +3,23 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Cloudflare Pages injects CF_PAGES=1 into every git-connected build
+// automatically (no dashboard config needed) — used here to tell it apart
+// from the GitHub Actions build, since the two deploy to different paths:
+// GitHub Pages serves this app under /rytc-care-plus/, Cloudflare Pages
+// serves it at the domain root. Previously this required manually editing
+// this file (and App.tsx's basename) before every manual Cloudflare build.
+const isCloudflarePages = !!process.env.CF_PAGES
+const basePath = isCloudflarePages ? '/' : '/rytc-care-plus/'
+// react-router's basename doesn't take a trailing slash (except the root '/' itself).
+const routerBasename = isCloudflarePages ? '/' : '/rytc-care-plus'
+
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/rytc-care-plus/',
+  base: basePath,
   define: {
     __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
+    __BASE_PATH__: JSON.stringify(routerBasename),
   },
   plugins: [
     react(),
@@ -20,7 +32,7 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        id: '/rytc-care-plus/',
+        id: basePath,
         name: 'RYTC Care+',
         short_name: 'Care+',
         description: 'ระบบดูแลช่วยเหลือและติดตามนักเรียน นักศึกษา วิทยาลัยเทคนิคระยอง',
@@ -28,8 +40,8 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait-primary',
-        start_url: '/rytc-care-plus/',
-        scope: '/rytc-care-plus/',
+        start_url: basePath,
+        scope: basePath,
         lang: 'th',
         icons: [
           {
