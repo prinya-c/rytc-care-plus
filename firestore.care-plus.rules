@@ -47,6 +47,10 @@ service cloud.firestore {
     match /dropout-follow-ups/{recordId} {
       allow read, write: if true;
     }
+    // แบบสำรวจข้อมูลผู้เรียนพิการ
+    match /disabilities/{surveyId} {
+      allow read, write: if true;
+    }
     // การส่งต่อผู้เรียนไปยังงานแนะแนว/ทุนการศึกษา/บำบัด
     match /referrals/{referralId} {
       allow read, write: if true;
