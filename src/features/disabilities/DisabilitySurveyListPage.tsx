@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { fetchDisabilitySurveysByTeacher, fetchAllDisabilitySurveys, deleteDisabilitySurvey } from './api';
 import { fetchAllDepartments, fetchAllClasses } from '../students/api';
+import { waitForImages } from '../../utils/waitForImages';
 import { canViewCollegeOverview } from '../../utils/rbac';
 import { DISABILITY_TYPE_LABEL, DISABILITY_TYPE_ORDER } from '../../types';
 import type { DisabilitySurvey } from '../../types';
@@ -14,6 +15,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Icon } from '../../components/ui/Icon';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
+import { DisabilitySurveyPrintDocument } from './DisabilitySurveyPrintDocument';
 
 const ALL = '__all__';
 
@@ -26,6 +28,11 @@ export default function DisabilitySurveyListPage() {
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
+  // Which record is currently being printed, and whether the print dialog
+  // has been triggered — printing happens in place, without navigating away.
+  const [printTarget, setPrintTarget] = useState<DisabilitySurvey | null>(null);
+  const [printing, setPrinting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
   // For college-overview roles, a filter must be picked before the heavy
   // fetch (every survey record in the college) runs at all.
@@ -63,6 +70,27 @@ export default function DisabilitySurveyListPage() {
       return true;
     });
   }, [allRecords, classFilter, deptFilter, search]);
+
+  useEffect(() => {
+    if (!printing) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      await waitForImages(printRef.current);
+      if (!cancelled) window.print();
+    }, 50);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [printing]);
+
+  useEffect(() => {
+    function handleAfterPrint() {
+      setPrinting(false);
+    }
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
 
   async function handleDelete(record: DisabilitySurvey) {
     const ok = await confirm({
@@ -131,7 +159,7 @@ export default function DisabilitySurveyListPage() {
       ) : data.length === 0 ? (
         <EmptyState title="ยังไม่มีข้อมูลผู้เรียนพิการ" description="เริ่มบันทึกแบบสำรวจข้อมูลผู้เรียนพิการฉบับแรกของคุณ" />
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 print:hidden">
           {data.map((record) => {
             const types = DISABILITY_TYPE_ORDER.filter((k) => record.disabilityTypes?.[k]);
             return (
@@ -140,26 +168,39 @@ export default function DisabilitySurveyListPage() {
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500">
                     <Icon name="id-card" className="h-4 w-4" />
                   </div>
-                  {!overview && (
-                    <div className="flex gap-1.5">
-                      <Link
-                        to={`/disabilities/${record.id}/edit`}
-                        title="แก้ไข"
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200"
-                      >
-                        <Icon name="pencil" className="h-4 w-4" />
-                      </Link>
-                      <button
-                        type="button"
-                        title="ลบ"
-                        disabled={deletingId === record.id}
-                        onClick={() => handleDelete(record)}
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-close-100 text-close-700 hover:bg-close-200 disabled:opacity-50"
-                      >
-                        <Icon name="trash" className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      title="พิมพ์แบบสำรวจข้อมูลผู้เรียนพิการ"
+                      onClick={() => {
+                        setPrintTarget(record);
+                        setPrinting(true);
+                      }}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-trust-100 text-trust-700 hover:bg-trust-200"
+                    >
+                      <Icon name="printer" className="h-4 w-4" />
+                    </button>
+                    {!overview && (
+                      <>
+                        <Link
+                          to={`/disabilities/${record.id}/edit`}
+                          title="แก้ไข"
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200"
+                        >
+                          <Icon name="pencil" className="h-4 w-4" />
+                        </Link>
+                        <button
+                          type="button"
+                          title="ลบ"
+                          disabled={deletingId === record.id}
+                          onClick={() => handleDelete(record)}
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-close-100 text-close-700 hover:bg-close-200 disabled:opacity-50"
+                        >
+                          <Icon name="trash" className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <p className="mt-3 text-sm font-bold leading-snug text-gray-900">{record.studentName}</p>
@@ -184,6 +225,12 @@ export default function DisabilitySurveyListPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {printing && printTarget && (
+        <div ref={printRef} className="hidden print:block text-sm leading-relaxed">
+          <DisabilitySurveyPrintDocument record={printTarget} />
         </div>
       )}
     </div>
