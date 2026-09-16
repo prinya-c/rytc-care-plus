@@ -23,6 +23,10 @@ export async function uploadDropoutFollowUpImage(file: File, studentId: string) 
   return uploadCompressedImage(file, `dropout-follow-ups/${studentId}`);
 }
 
+export async function uploadDisabilityPhoto(file: File, studentId: string) {
+  return uploadCompressedImage(file, `disabilities/${studentId}`);
+}
+
 /** Deletes an uploaded image given its Storage download URL. Safe to call on an already-deleted file. */
 export async function deleteImageByUrl(url: string) {
   try {

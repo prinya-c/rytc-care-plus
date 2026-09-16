@@ -28,6 +28,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'advisor_teacher', 'advisor_staff'],
   },
   {
+    to: '/disabilities',
+    label: 'สำรวจข้อมูลผู้เรียนพิการ',
+    icon: 'id-card',
+    roles: ['admin', 'advisor_teacher', 'advisor_staff'],
+  },
+  {
     to: '/screenings',
     label: 'คัดกรองผู้เรียน',
     icon: 'clipboard',
