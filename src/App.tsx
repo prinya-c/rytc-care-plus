@@ -48,7 +48,7 @@ const ADMIN_ONLY_ROLES = ['admin'] as const;
 
 export default function App() {
   return (
-    <BrowserRouter basename="/rytc-care-plus">
+    <BrowserRouter basename={__BASE_PATH__}>
       <AuthProvider>
         <StudentAuthProvider>
           <ToastProvider>
