@@ -229,7 +229,7 @@ export default function DisabilitySurveyListPage() {
       )}
 
       {printing && printTarget && (
-        <div ref={printRef} className="hidden print:block text-sm leading-relaxed">
+        <div ref={printRef} className="hidden print:block text-xs leading-snug">
           <DisabilitySurveyPrintDocument record={printTarget} />
         </div>
       )}
