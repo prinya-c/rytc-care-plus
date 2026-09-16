@@ -278,20 +278,20 @@ export function DisabilitySurveyPrintDocument({ record }: { record: DisabilitySu
           <Check checked={record.subsidyWaiveOption === 'other_welfare'} label="สละสิทธิ์การขอรับเงินอุดหนุนโดยขอใช้สิทธิสวัสดิการอื่นๆ" />
         </p>
 
-        <p className="mt-4">
+        <p className="mt-2">
           ข้าพเจ้าขอรับรองว่า ข้อมูลที่ข้าพเจ้าให้ไว้กับวิทยาลัย<Blank value="เทคนิคระยอง" className="ml-1 flex-1" />
         </p>
         <p>เป็นจริงตามที่ระบุไว้ข้างต้นทุกประการ</p>
 
-        <div className="mt-8 flex justify-end">
+        <div className="mt-4 flex justify-end">
           <div className="text-center">
             <p>ลงชื่อ.............................................ผู้เรียนพิการ</p>
-            <p className="mt-1">({record.studentName || '.............................................'})</p>
-            <p className="mt-1">วันที่....................................</p>
+            <p className="mt-0.5">({record.studentName || '.............................................'})</p>
+            <p className="mt-0.5">วันที่....................................</p>
           </div>
         </div>
 
-        <p className="mt-6 text-xs">หมายเหตุ ให้ผู้เรียนพิการกรอกข้อมูลให้ครบถ้วนตามความเป็นจริง</p>
+        <p className="mt-2">หมายเหตุ ให้ผู้เรียนพิการกรอกข้อมูลให้ครบถ้วนตามความเป็นจริง</p>
       </div>
     </>
   );
