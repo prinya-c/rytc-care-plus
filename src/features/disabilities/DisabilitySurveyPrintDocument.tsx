@@ -246,9 +246,7 @@ export function DisabilitySurveyPrintDocument({ record }: { record: DisabilitySu
             {needs.computerProgram && <Blank value={needs.computerProgramDetail} />}
           </Check>
         </div>
-      </div>
 
-      <div className="break-before-page">
         <SectionTitle>8. การขอรับความช่วยเหลือหรือบริการทางการศึกษาที่ต้องการ (วิทยาลัยจะพิจารณาตามความเหมาะสม)</SectionTitle>
         <p className="mt-1">สิ่งอำนวยความสะดวกในการเรียนและการสอบ (ระบุความต้องการจำเป็นและเหตุผล)</p>
         <p className="ml-4 min-h-[3em] whitespace-pre-wrap border-b border-dotted border-black">{record.neededSupportDetail || ' '}</p>

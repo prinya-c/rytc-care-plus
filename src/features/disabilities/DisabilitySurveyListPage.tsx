@@ -116,8 +116,8 @@ export default function DisabilitySurveyListPage() {
   if (shouldLoad && (error || !data)) return <ErrorState onRetry={refetch} />;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5 print:space-y-0">
+      <div className="flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">สำรวจข้อมูลผู้เรียนพิการ</h1>
           <p className="text-sm text-gray-500">{data ? `ทั้งหมด ${data.length} รายการ` : 'โปรดเลือกสาขาวิชาหรือกลุ่มเรียนเพื่อแสดงข้อมูล'}</p>
@@ -130,7 +130,7 @@ export default function DisabilitySurveyListPage() {
       </div>
 
       {overview && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 print:hidden">
           <div className="relative col-span-2 sm:col-span-1">
             <Icon name="search" className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาชื่อ / รหัส" className="pl-9" />
